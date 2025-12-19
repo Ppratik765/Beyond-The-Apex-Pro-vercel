@@ -6,8 +6,9 @@ import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Always use /tmp for cache in production Docker environments
-if os.environ.get('RAILWAY_ENVIRONMENT'):
+# RENDER & VERCEL CACHE FIX
+# If we are on Render (RENDER=true) or the directory isn't writable, use /tmp
+if os.environ.get('RENDER') or not os.access(BASE_DIR, os.W_OK):
     CACHE_DIR = "/tmp/fastf1_cache"
 else:
     CACHE_DIR = os.path.join(BASE_DIR, 'cache')
@@ -329,5 +330,6 @@ def generate_ai_insights(multi_data, k1, k2):
     unique_insights = list(set(insights))
 
     return unique_insights[:15] if unique_insights else ["No significant differences found."]
+
 
 
