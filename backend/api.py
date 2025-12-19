@@ -11,11 +11,7 @@ from analysis import (
 import json
 import os
 
-# Define the root path for Vercel (production) vs Local
-# On Vercel, the app is behind a proxy at /api, so we tell FastAPI to strip that prefix.
-root_path = "/api" if os.environ.get('VERCEL') else ""
-
-app = FastAPI(root_path=root_path)
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,21 +20,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- ROUTES (No prefixes needed anymore) ---
+# HELPER: Determine route prefix based on environment
+# If on Vercel, requests come in as "/api/years", so we need to handle that.
+PREFIX = "/api" if os.environ.get('VERCEL') else ""
 
-@app.get("/years")
-def get_years(): 
-    return {"years": get_available_years()}
+@app.get(f"{PREFIX}/years")
+def get_years(): return {"years": get_available_years()}
 
-@app.get("/races")
-def get_races(year: int): 
-    return {"races": get_races_for_year(year)}
+@app.get(f"{PREFIX}/races")
+def get_races(year: int): return {"races": get_races_for_year(year)}
 
-@app.get("/sessions")
-def get_sessions(year: int, race: str): 
-    return {"sessions": get_sessions_for_race(year, race)}
+@app.get(f"{PREFIX}/sessions")
+def get_sessions(year: int, race: str): return {"sessions": get_sessions_for_race(year, race)}
 
-@app.get("/race_laps")
+@app.get(f"{PREFIX}/race_laps")
 def get_race_laps_endpoint(year: int, race: str, session: str, drivers: str):
     driver_list = [d.strip().upper() for d in drivers.split(',')]
     try:
@@ -47,13 +42,21 @@ def get_race_laps_endpoint(year: int, race: str, session: str, drivers: str):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-@app.get("/analyze")
-def analyze_drivers(year: int, race: str, session: str, drivers: str, specific_laps: str = Query(None)):
+@app.get(f"{PREFIX}/analyze")
+def analyze_drivers(
+    year: int, 
+    race: str, 
+    session: str, 
+    drivers: str, 
+    specific_laps: str = Query(None)
+):
     driver_list = [d.strip().upper() for d in drivers.split(',')]
     specific_laps_list = None
     if specific_laps:
-        try: specific_laps_list = json.loads(specific_laps)
-        except: pass 
+        try:
+            specific_laps_list = json.loads(specific_laps)
+        except:
+            pass 
 
     try:
         data = get_telemetry_multi(year, race, session, driver_list, specific_laps=specific_laps_list)
@@ -62,10 +65,16 @@ def analyze_drivers(year: int, race: str, session: str, drivers: str, specific_l
         if len(keys) >= 2:
             insights = generate_ai_insights(data, keys[0], keys[1])
         
-        return {"status": "success", "data": data, "ai_insights": insights}
+        return {
+            "status": "success",
+            "data": data,
+            "ai_insights": insights
+        }
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
+    # When running locally, we still run on port 8000, but routes won't have the /api prefix 
+    # unless you manually add it. Ideally, Vercel handles the rewrite.
     uvicorn.run(app, host="0.0.0.0", port=8000)
