@@ -41,7 +41,7 @@ const TYRE_EMOJIS = {
 function Dashboard() {
     // If we are in production (Vite sets this), use a relative path which Vercel rewrites.
     // If local, use the full localhost URL.
-  const API_BASE = "https://f1-backend.zeabur.app";
+  const API_BASE = "https://f1-experimental.zeabur.app";
     
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
