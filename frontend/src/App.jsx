@@ -20,7 +20,7 @@ const TYRE_EMOJIS = {
 function App() {
     // If we are in production (Vite sets this), use relative path which Vercel rewrites.
     // If local, use the full localhost URL.
-  const API_BASE = "https://beyond-the-apex-pro-production.up.railway.app";
+  const API_BASE = "https://beyond-the-apex-pro-vercel-2.onrender.com";
     
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -428,6 +428,7 @@ const chartTitleStyle = { margin:0, color:'#666', fontSize:'0.8em', letterSpacin
 
 
 export default App;
+
 
 
 
