@@ -37,38 +37,55 @@ Beyond The Apex PRO is an F1 telemetry and race strategy platform built on FastF
 
 ---
 
-## 🛠️ Tech Stack
+# 🏗️ Architecture & Tech Stack
 
-### Frontend
-* **React.js** (Vite)
-* **Chart.js** & **React-Chartjs-2** (Data Visualization)
-* **Chartjs-plugin-zoom** (Interactive panning/zooming)
-* **Axios** (API Communication)
+This project uses a **Hybrid Deployment Strategy** to handle heavy data processing while maintaining a fast, responsive UI.
 
-### Backend
-* **Python 3.10+**
-* **FastAPI** (High-performance API framework)
-* **FastF1** (F1 Data gathering and signal processing)
-* **Pandas & NumPy** (Data manipulation and interpolation)
+### Frontend (Deployed on Vercel)
+* **Framework:** React 18 (Vite)
+* **Styling:** CSS / Tailwind
+* **Visualization:** Chart.js & React-Chartjs-2
+* **Networking:** Axios
+
+### Backend (Deployed on Zeabur)
+* **Framework:** FastAPI (Python 3.9)
+* **Data Source:** [FastF1](https://github.com/theOehrly/Fast-F1) (Official F1 Live Timing Client wrapper)
+* **Data Processing:** Pandas, NumPy, SciPy
+* **Server:** Uvicorn (ASGI)
+
+### ☁️ Deployment Strategy
+Due to the large size of data science libraries (Pandas/NumPy ~300MB), the backend could not be hosted on Vercel Serverless functions.
+* **Frontend:** Hosted on **Vercel** for global CDN and fast static asset delivery.
+* **Backend:** Dockerized and hosted on **Zeabur**, providing a persistent environment for the Python API.
 
 ---
 
-## 🚀 Getting Started
+## 🛠️ Local Installation Guide
+
+Follow these steps to run the project on your machine.
 
 ### Prerequisites
 * Node.js (v16+)
-* Python (v3.9+)
+* Python (v3.8+)
+* Git
 
-### 1. Backend Setup
-
-The backend handles data fetching, caching, and mathematical processing.
-
+### 1. Clone the Repository
 ```bash
-# Navigate to backend directory
+git clone https://github.com/Ppratik765/Beyond-The-Apex-Pro-vercel.git
+cd Beyond-The-Apex-Pro-vercel
+```
+
+### 2. Backend Setup
+The backend processes the F1 data.
+```bash
+
+# Navigate to backend folder
 cd backend
 
-# Create a virtual environment (Optional but recommended)
+# Create virtual environment
 python -m venv venv
+
+# Activate virtual environment
 # Windows:
 venv\Scripts\activate
 # Mac/Linux:
@@ -77,39 +94,42 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the API server
-uvicorn api:app --reload --host 0.0.0.0 --port 8000
+# Run the server
+uvicorn index:app --reload
 ```
-The backend will be available at http://localhost:8000.
+The Backend will start at http://127.0.0.1:8000
 
-## 2. Frontend Setup
-The frontend is the visual dashboard.
-
-
+### 3. Frontend Setup
+Open a new terminal for the frontend.
 ```bash
-# Navigate to frontend directory
+
+# Navigate to frontend folder
 cd frontend
 
 # Install dependencies
 npm install
 
-# Create environment file (Optional for local dev, required for prod)
-# Create a file named .env.local
-echo "VITE_API_URL=http://localhost:8000" > .env.local
-
 # Run the development server
 npm run dev
 ```
-The frontend will generally start at http://localhost:5173.
 
-### 🔮 Future Roadmap
--Authentication: User accounts to save favorite telemetry comparisons.
+The Frontend will start at http://localhost:5173
 
--Pro Tier: Paywall implementation for AI Insights and advanced G-Force analysis.
+Note: In frontend/src/App.jsx, ensure API_BASE points to http://localhost:8000 when running locally.
 
--Real-time Data: Integration with live timing feeds (pending API availability).
+### 🗺️ Roadmap & Future Plans
+I am actively working to turn this into a comprehensive F1 platform.
 
--2026 Support: Automatic scaling for future seasons via dynamic calendar fetching
+* Authentication: User accounts to save favourite telemetry comparisons.
+* Pro Tier: Paywall implementation for AI Insights and advanced G-Force analysis.
+* Real-time Data: Integration with live timing feeds (pending API availability).
+* 2026 Support: Automatic scaling for future seasons via dynamic calendar fetching
+* Add WDC (Driver) & WCC (Constructor) Championship Standings tables.
+
+### ⚠️ Known Issues / Limitations
+First Load Speed: Since the backend is hosted on a free-tier instance, it may "sleep" after inactivity. The first request might take 10-30 seconds to wake up. Subsequent requests will be fast.
+
+Data Availability: The Data is retrieved from the FastF1 API. Detailed telemetry is usually available 30-60 minutes after a session ends.
 
 ### ⚖️ License & Acknowledgements
 Data provided by the excellent FastF1 library.
