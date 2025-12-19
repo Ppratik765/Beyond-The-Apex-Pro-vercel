@@ -11,11 +11,7 @@ from analysis import (
 import json
 import os
 
-# Define the root path for Vercel (production) vs Local
-# On Vercel, the app is behind a proxy at /api, so we tell FastAPI to strip that prefix.
-root_path = "/api" if os.environ.get('VERCEL') else ""
-
-app = FastAPI(root_path=root_path)
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,21 +20,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- ROUTES (No prefixes needed anymore) ---
+# --- VERCEL ROUTING FIX ---
+# If we are on Vercel, we must account for the "/api" prefix in the URL.
+# If we are local, we don't use a prefix.
+PREFIX = "/api" if os.environ.get("VERCEL") else ""
 
-@app.get("/years")
+@app.get(PREFIX + "/years")
 def get_years(): 
     return {"years": get_available_years()}
 
-@app.get("/races")
+@app.get(PREFIX + "/races")
 def get_races(year: int): 
     return {"races": get_races_for_year(year)}
 
-@app.get("/sessions")
+@app.get(PREFIX + "/sessions")
 def get_sessions(year: int, race: str): 
     return {"sessions": get_sessions_for_race(year, race)}
 
-@app.get("/race_laps")
+@app.get(PREFIX + "/race_laps")
 def get_race_laps_endpoint(year: int, race: str, session: str, drivers: str):
     driver_list = [d.strip().upper() for d in drivers.split(',')]
     try:
@@ -47,7 +46,7 @@ def get_race_laps_endpoint(year: int, race: str, session: str, drivers: str):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-@app.get("/analyze")
+@app.get(PREFIX + "/analyze")
 def analyze_drivers(year: int, race: str, session: str, drivers: str, specific_laps: str = Query(None)):
     driver_list = [d.strip().upper() for d in drivers.split(',')]
     specific_laps_list = None
@@ -65,6 +64,11 @@ def analyze_drivers(year: int, race: str, session: str, drivers: str, specific_l
         return {"status": "success", "data": data, "ai_insights": insights}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+# Catch-all for debugging: If a request hits /api/something-else, show what happened
+@app.get(PREFIX + "/")
+def root():
+    return {"message": "API is running", "prefix_used": PREFIX}
 
 if __name__ == "__main__":
     import uvicorn
