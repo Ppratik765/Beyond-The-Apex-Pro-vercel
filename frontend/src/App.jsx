@@ -18,7 +18,7 @@ const TYRE_EMOJIS = {
 };
 
 function App() {
-    // If we are in production (Vite sets this), use relative path which Vercel rewrites.
+    // If we are in production (Vite sets this), use a relative path which Vercel rewrites.
     // If local, use the full localhost URL.
   const API_BASE = "f1-backend.zeabur.app";
     
@@ -428,6 +428,7 @@ const chartTitleStyle = { margin:0, color:'#666', fontSize:'0.8em', letterSpacin
 
 
 export default App;
+
 
 
 
