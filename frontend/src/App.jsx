@@ -7,7 +7,28 @@ import { Chart } from 'chart.js';
 
 Chart.register(zoomPlugin);
 
-const DRIVER_COLORS = ['#36a2eb', '#ff6384', '#00ff9d', '#ff9f40', '#9966ff', '#ffcd56'];
+const DRIVER_COLORS = [
+  '#e6194b', // red
+  '#3cb44b', // green
+  '#ffe119', // yellow
+  '#4363d8', // blue
+  '#f58231', // orange
+  '#911eb4', // purple
+  '#46f0f0', // cyan
+  '#f032e6', // magenta
+  '#bcf60c', // lime
+  '#fabebe', // pink
+  '#008080', // teal
+  '#e6beff', // lavender
+  '#9a6324', // brown
+  '#fffac8', // beige
+  '#800000', // maroon
+  '#aaffc3', // mint
+  '#808000', // olive
+  '#ffd8b1', // peach
+  '#000075', // navy
+  '#808080'  // gray
+];
 const TYRE_COLORS = {
     'SOFT': '#ff3b30', 'MEDIUM': '#ffcc00', 'HARD': '#ffffff',
     'INTERMEDIATE': '#43a047', 'WET': '#0057e7', 'UNKNOWN': '#888'
@@ -428,6 +449,7 @@ const chartTitleStyle = { margin:0, color:'#666', fontSize:'0.8em', letterSpacin
 
 
 export default App;
+
 
 
 
