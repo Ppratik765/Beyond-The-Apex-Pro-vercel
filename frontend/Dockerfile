@@ -6,20 +6,20 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copy source code and build
+# Copy source code
 COPY . .
+
+# CRITICAL CHANGE: Declare the build argument
+ARG VITE_API_URL
+# Set it as an environment variable so the build process can see it
+ENV VITE_API_URL=$VITE_API_URL
+
+# Now build the app with the variable "baked in"
 RUN npm run build
 
 # --- Stage 2: Serve the App ---
-# We use 'serve' to host the static files on the dynamic Railway port
 FROM node:18-alpine
 WORKDIR /app
-
-# Install 'serve' globally
 RUN npm install -g serve
-
-# Copy the built 'dist' folder from the previous stage
 COPY --from=build /app/dist ./dist
-
-# Start the server on the port Railway provides
 CMD serve -s dist -l $PORT
