@@ -8,12 +8,12 @@ import { Chart } from 'chart.js';
 Chart.register(zoomPlugin);
 
 const DRIVER_COLORS = [
-  '#e6194b', // red
-  '#3cb44b', // green
-  '#ffe119', // yellow
   '#4363d8', // blue
+  '#e6194b', // red
   '#f58231', // orange
+  '#ffe119', // yellow
   '#911eb4', // purple
+  '#3cb44b', // green
   '#46f0f0', // cyan
   '#f032e6', // magenta
   '#bcf60c', // lime
@@ -449,6 +449,7 @@ const chartTitleStyle = { margin:0, color:'#666', fontSize:'0.8em', letterSpacin
 
 
 export default App;
+
 
 
 
