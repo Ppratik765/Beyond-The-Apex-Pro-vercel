@@ -125,6 +125,9 @@ I am actively working to turn this into a comprehensive F1 platform.
 * Real-time Data: Integration with live timing feeds (pending API availability).
 * 2026 Support: Automatic scaling for future seasons via dynamic calendar fetching
 * Add WDC (Driver) & WCC (Constructor) Championship Standings tables.
+* Authentication (Sign Up/Login).
+* "My Garage": Save favourite drivers and teams for quick access
+* AI Chatbot Race Engineer.
 
 ### ⚠️ Known Issues / Limitations
 First Load Speed: Since the backend is hosted on a free-tier instance, it may "sleep" after inactivity. The first request might take 10-30 seconds to wake up. Subsequent requests will be fast.
