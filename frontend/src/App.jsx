@@ -31,7 +31,7 @@ function App() {
       year: new Date().getFullYear(), 
       race: '', 
       session: '', 
-      drivers: 'VER, LEC'
+      drivers: 'VER, LEC, PIA'
   });
   const [activeDrivers, setActiveDrivers] = useState([]);
 
@@ -267,7 +267,7 @@ function App() {
     <div style={{ padding: '20px', background: '#121212', color: '#e0e0e0', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
       {/* HEADER */}
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
-        <h1 style={{margin:0, fontSize: '1.5em'}}>🏎️ Beyond The Apex <span style={{color:'#e10600', fontSize:'0.5em', verticalAlign:'middle'}}>PRO</span></h1>
+        <h1 style={{margin:0, fontSize: '2.2em'}}>🏎️ Beyond The Apex <span style={{color:'#e10600', fontSize:'0.7em', verticalAlign:'middle'}}>PRO</span></h1>
         <div style={{fontSize:'0.8em', color:'#666', background:'#1a1a1a', padding:'5px 10px', borderRadius:'4px'}}>
             {telemetryData && !isRaceOrPractice && <span>🖱️ <b>Drag</b> to Zoom | ⇧ <b>Shift+Drag</b> Pan | <span style={{cursor:'pointer', color:'#e10600', fontWeight:'bold'}} onClick={resetAllCharts}>⟲ Reset All</span></span>}
             {isRaceOrPractice && !telemetryData && <span>🖱️ <b>Click dots</b> to select specific laps.</span>}
@@ -421,5 +421,6 @@ const miniBtnStyle = { padding: '2px 8px', background: '#333', color: '#aaa', bo
 const chartContainerStyle = { background: '#1a1a1a', padding: '10px 15px', borderRadius: '8px', border:'1px solid #333', position: 'relative' };
 const headerStyle = { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px' };
 const chartTitleStyle = { margin:0, color:'#666', fontSize:'0.8em', letterSpacing:'1px' };
+
 
 export default App;
