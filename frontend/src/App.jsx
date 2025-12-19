@@ -18,6 +18,12 @@ const TYRE_EMOJIS = {
 };
 
 function App() {
+    // If we are in production (Vite sets this), use relative path which Vercel rewrites.
+    // If local, use the full localhost URL.
+  const API_BASE = import.meta.env.PROD 
+    ? '/api' 
+    : 'http://localhost:8000';
+    
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -59,7 +65,7 @@ function App() {
   }, [inputs.race, inputs.session]);
 
   useEffect(() => {
-      axios.get('http://localhost:8000/years').then(res => {
+      axios.get(`${API_BASE}/years`).then(res => {
           setYears(res.data.years);
           if(res.data.years.length > 0) setInputs(prev => ({...prev, year: res.data.years[res.data.years.length-1]}));
       });
@@ -67,7 +73,7 @@ function App() {
 
   useEffect(() => {
       if(inputs.year) {
-          axios.get(`http://localhost:8000/races?year=${inputs.year}`).then(res => {
+          axios.get(`${API_BASE}/races?year=${inputs.year}`).then(res => {
               setRaces(res.data.races);
               setInputs(prev => ({...prev, race: res.data.races[0] || '', session: ''}));
           });
@@ -76,7 +82,7 @@ function App() {
 
   useEffect(() => {
       if(inputs.year && inputs.race) {
-          axios.get(`http://localhost:8000/sessions?year=${inputs.year}&race=${inputs.race}`).then(res => {
+          axios.get(`${API_BASE}/sessions?year=${inputs.year}&race=${inputs.race}`).then(res => {
               setSessions(res.data.sessions);
               const def = res.data.sessions.find(s => s.includes('Qualifying')) || res.data.sessions[0] || '';
               setInputs(prev => ({...prev, session: def}));
@@ -92,7 +98,7 @@ function App() {
       if (!inputs.race || !inputs.session) return;
       setLoading(true); setError(null); setRaceLapData(null); setStintData(null); setRaceWinner(null); setRaceWeather(null); setTelemetryData(null); setSelectedLaps([]);
     try {
-            const res = await axios.get(`http://localhost:8000/race_laps`, { params: { ...inputs } });
+            const res = await axios.get(`${API_BASE}/race_laps`, { params: { ...inputs } });
             if (res.data.status === 'error') throw new Error(res.data.message);
             
             setRaceLapData(res.data.data.laps);
@@ -118,7 +124,7 @@ function App() {
            setLoading(false); return;
       }
 
-      const res = await axios.get(`http://localhost:8000/analyze`, { params: params });
+      const res = await axios.get(`${API_BASE}/analyze`, { params: params });
       if (res.data.status === 'error') throw new Error(res.data.message);
       
       res.data.data.ai_insights = res.data.ai_insights;
@@ -424,3 +430,4 @@ const chartTitleStyle = { margin:0, color:'#666', fontSize:'0.8em', letterSpacin
 
 
 export default App;
+
