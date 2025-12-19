@@ -2,14 +2,13 @@
 Beyond The Apex PRO is an F1 telemetry and race strategy platform built on FastF1 for enthusiasts and data analysts. It features two modes: a Race Engineer Dashboard for long-run pace, tyre strategy and stint history, and a Telemetry Lab for analysing braking, throttle and corner speeds. An AI insights engine highlights where drivers gain time. It is a full-stack web application designed to visualise and analyse Formula 1 telemetry data. It bridges the gap between raw data and actionable race strategy insights, offering features like lap time distribution, tyre stint visualisation, and AI-generated driver comparisons.
 
 ## Website Link
-https://beyond-the-apex-pro.up.railway.app/
-
+[(https://beyond-the-apex-pro.vercel.app/)
+](https://beyond-the-apex-pro.vercel.app/)
 ## Project Screenshot
-<img width="1891" height="941" alt="image" src="https://github.com/user-attachments/assets/c11f9165-d65b-44df-be05-858801adc1c9" />
-<img width="1894" height="872" alt="image" src="https://github.com/user-attachments/assets/c2ab178b-441a-43ec-bc3f-5794f510119a" />
-<img width="1896" height="872" alt="image" src="https://github.com/user-attachments/assets/b1e8eaea-6759-45a8-ba61-fb3091c826df" />
-<img width="1897" height="871" alt="image" src="https://github.com/user-attachments/assets/42065596-3361-4632-8ac5-7846bc7c0586" />
-
+<img width="1889" height="878" alt="image" src="https://github.com/user-attachments/assets/c67931cc-9c32-482e-afda-a084d7ab3efc" />
+<img width="1898" height="876" alt="image" src="https://github.com/user-attachments/assets/4fe9199f-b227-4852-ac18-84d020e8fdd6" />
+<img width="1898" height="869" alt="image" src="https://github.com/user-attachments/assets/4f963b48-7184-447e-a44b-edab7c60057c" />
+<img width="1893" height="879" alt="image" src="https://github.com/user-attachments/assets/f1f991c6-8808-4611-a330-7663c2799b03" />
 
 ## ✨ Features
 
