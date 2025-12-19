@@ -20,9 +20,7 @@ const TYRE_EMOJIS = {
 function App() {
     // If we are in production (Vite sets this), use relative path which Vercel rewrites.
     // If local, use the full localhost URL.
-  const API_BASE = import.meta.env.PROD 
-    ? '/api' 
-    : 'http://localhost:8000';
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
     
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -430,4 +428,5 @@ const chartTitleStyle = { margin:0, color:'#666', fontSize:'0.8em', letterSpacin
 
 
 export default App;
+
 
