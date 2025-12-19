@@ -290,6 +290,36 @@ function Dashboard() {
 
   return (
     <div style={{ padding: '20px', background: '#121212', color: '#e0e0e0', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
+      {/* --- NEW SECTION: USER INFO BAR --- */}
+      <div className="dashboard-header" style={{
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          background: '#1e1e1e', 
+          padding: '10px 20px', 
+          borderRadius: '8px', 
+          marginBottom: '20px',
+          border: '1px solid #333'
+      }}>
+        <span style={{ color: '#aaa', fontSize: '0.9em' }}>
+          Logged in as: <b style={{ color: '#fff' }}>{session?.user?.email}</b>
+        </span>
+        <button 
+          onClick={handleLogout} 
+          className="logout-btn"
+          style={{
+            background: '#333',
+            color: 'white',
+            border: '1px solid #555',
+            padding: '5px 15px',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Log Out
+        </button>
+      </div>
+      {/* ---------------------------------- */}
       {/* HEADER */}
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
         <h1 style={{margin:0, fontSize: '2.3em'}}>🏎️ Beyond The Apex <span style={{color:'#e10600', fontSize:'0.7em', verticalAlign:'middle'}}>PRO</span></h1>
