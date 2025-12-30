@@ -302,7 +302,10 @@ function Dashboard() {
           border: '1px solid #333'
       }}>
         <span style={{ color: '#aaa', fontSize: '0.9em' }}>
-          Logged in as: <b style={{ color: '#fff' }}>{session?.user?.email}</b>
+          Welcome back, <b style={{ color: '#fff', fontSize: '1.1em' }}>
+            {/* Try to get the name from metadata, fallback to email */}
+            {session?.user?.user_metadata?.full_name || session?.user?.email}
+          </b>
         </span>
         <button 
           onClick={handleLogout} 
