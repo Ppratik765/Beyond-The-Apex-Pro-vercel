@@ -320,7 +320,7 @@ function Dashboard({ session, handleLogout }) {
         <select value={inputs.race} onChange={e => setInputs(p=>({...p, race: e.target.value}))} style={styles.select} disabled={!inputs.year}>{races.map(r => <option key={r} value={r}>{r}</option>)}</select>
         <select value={inputs.session} onChange={e => setInputs(p=>({...p, session: e.target.value}))} style={styles.select} disabled={!inputs.race}>{sessions.map(s => <option key={s} value={s}>{s}</option>)}</select>
         <input placeholder="DRIVERS (e.g. VER, HAM)" value={inputs.drivers} onChange={e => setInputs({...inputs, drivers: e.target.value})} style={styles.input}/>
-        <button onClick={handleMainAction} disabled={loading || !inputs.session} style={loading ? styles.btnDisabled : styles.btnPrimary}>{loading ? 'STARTING ENGINE...' : (isRaceOrPractice ? 'LOAD RACE LAPS' : 'ANALYZE FASTEST LAPS')}</button>
+        <button onClick={handleMainAction} disabled={loading || !inputs.session} style={loading ? styles.btnDisabled : styles.btnPrimary}>{loading ? 'GETTING DATA...' : (isRaceOrPractice ? 'LOAD RACE LAPS' : 'ANALYZE FASTEST LAPS')}</button>
       </div>
 
       {error && <div style={styles.errorBanner}>⚠️ {error}</div>}
@@ -418,7 +418,7 @@ function Dashboard({ session, handleLogout }) {
                                 <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}>
                                     <div><span style={{fontWeight:'bold', color: DRIVER_COLORS[i % DRIVER_COLORS.length], fontSize:'1.2em'}}>{key}</span></div>
                                     <div style={{textAlign:'right'}}>
-                                        <div style={{fontFamily:'monospace', color:'white', fontSize:'1.1em'}}>{formatTime(dData.lap_time)} <span style={{color: delta===0? COLORS.neon : '#ffee00', fontSize:'0.7em', fontWeight:'bold'}}>{delta===0?'PURPLE':`+${delta.toFixed(3)}`}</span></div>
+                                        <div style={{fontFamily:'monospace', color:'white', fontSize:'1.1em'}}>{formatTime(dData.lap_time)} <span style={{color: delta===0? COLORS.neon : '#ffee00', fontSize:'0.7em', fontWeight:'bold'}}>{delta===0?'FASTEST':`+${delta.toFixed(3)}`}</span></div>
                                         <div style={{fontSize:'0.8em', marginTop:'2px', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'5px'}}>
                                             <span style={{color: tyreColor, fontWeight:'bold', border: `1px solid ${tyreColor}`, padding:'0px 4px', borderRadius:'3px'}}>{dData.tyre_info.symbol}</span> 
                                             <span style={{color:'#888'}}>{dData.tyre_info.age} laps</span>
