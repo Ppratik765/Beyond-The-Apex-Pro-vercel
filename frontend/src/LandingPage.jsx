@@ -41,14 +41,7 @@ function LandingPage({ onLoginSuccess }) {
 
   const handleAppleLogin = async () => {
     // Apple login requires a paid Developer Account and verified domain.
-    // This code is correct, but will only work if fully configured in Supabase.
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: { redirectTo: window.location.origin }
-    });
-    if (error) setMessage({ type: 'error', text: error.message });
-    setLoading(false);
+    alert("Apple Sign-In is coming in the Professional tier update!");
   };
 
   const handleEmailAuth = async (e) => {
