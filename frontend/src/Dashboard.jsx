@@ -20,7 +20,30 @@ const COLORS = {
     grid: 'rgba(255, 255, 255, 0.05)'
 };
 
-const DRIVER_COLORS = ['#36a2eb', '#ff6384', '#00ff9d', '#ff9f40', '#9966ff', '#ffcd56'];
+
+const DRIVER_COLORS = [
+  '#4363d8', // blue
+  '#e6194b', // red
+  '#f58231', // orange
+  '#ffe119', // yellow
+  '#911eb4', // purple
+  '#3cb44b', // green
+  '#46f0f0', // cyan
+  '#f032e6', // magenta
+  '#bcf60c', // lime
+  '#fabebe', // pink
+  '#008080', // teal
+  '#e6beff', // lavender
+  '#9a6324', // brown
+  '#fffac8', // beige
+  '#800000', // maroon
+  '#aaffc3', // mint
+  '#808000', // olive
+  '#ffd8b1', // peach
+  '#000075', // navy
+  '#808080'  // gray
+];
+
 const TYRE_COLORS = {
     'SOFT': '#ff3b30', 'MEDIUM': '#ffcc00', 'HARD': '#ffffff',
     'INTERMEDIATE': '#43a047', 'WET': '#0057e7', 'UNKNOWN': '#888'
