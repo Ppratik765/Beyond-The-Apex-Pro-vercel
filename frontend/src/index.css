@@ -453,3 +453,86 @@ body {
   margin-left: 10px;
   font-weight: bold;
 }
+
+/* --- RESPONSIVE LAYOUT CLASSES (New) --- */
+
+/* 1. Dashboard Layouts */
+.dashboard-grid-race {
+  display: grid;
+  grid-template-columns: 7fr 2fr;
+  gap: 20px;
+  width: 100%;
+  margin-bottom: 40px;
+}
+
+.dashboard-grid-telemetry {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 20px;
+}
+
+.dashboard-controls {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* 2. Chart Grids (RPM + Long G) */
+.charts-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* --- MOBILE & TABLET OVERRIDES (@media) --- */
+
+@media (max-width: 1024px) {
+  /* Tablet: Make text slightly smaller, adjust paddings */
+  .hero h1 { font-size: 3rem; }
+  .price-card { width: 45%; } /* 2 cards per row */
+}
+
+@media (max-width: 768px) {
+  /* --- GLOBAL MOBILE FIXES --- */
+  
+  /* Stack Dashboard Grids */
+  .dashboard-grid-race, 
+  .dashboard-grid-telemetry,
+  .charts-split {
+    grid-template-columns: 1fr !important; /* Force single column */
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Adjust Navbar */
+  .navbar {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 15px;
+  }
+  .nav-links { margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .nav-links a { margin: 0; }
+  
+  /* Landing Page Hero */
+  .hero { padding-top: 140px; } /* More space for stacked navbar */
+  .hero-content { flex-direction: column; text-align: center; }
+  .hero-text { margin-bottom: 30px; }
+  .auth-box { width: 100%; max-width: 100%; } /* Full width on phone */
+  
+  /* Pricing & Steps */
+  .price-card, .step-card { width: 100%; } /* Full width cards */
+  
+  /* Dashboard Controls */
+  .dashboard-controls { flex-direction: column; align-items: stretch; }
+  .dashboard-controls select, 
+  .dashboard-controls input, 
+  .dashboard-controls button {
+    width: 100% !important; /* Full width inputs for easy tapping */
+    min-width: 0 !important;
+  }
+
+  /* Hide/Adjust decorative elements */
+  .bg-glow { opacity: 0.5; } /* Save battery/performance */
+}
