@@ -338,7 +338,7 @@ function Dashboard({ session, handleLogout }) {
       </div>
       
       {/* CONTROLS */}
-      <div style={{ display: 'flex', gap: '15px', marginBottom: '30px', flexWrap: 'wrap', alignItems:'center' }}>
+      <div className="dashboard-controls">
         <select value={inputs.year} onChange={e => setInputs(p=>({...p, year: e.target.value}))} style={styles.select}>{years.map(y => <option key={y} value={y}>{y}</option>)}</select>
         <select value={inputs.race} onChange={e => setInputs(p=>({...p, race: e.target.value}))} style={styles.select} disabled={!inputs.year}>{races.map(r => <option key={r} value={r}>{r}</option>)}</select>
         <select value={inputs.session} onChange={e => setInputs(p=>({...p, session: e.target.value}))} style={styles.select} disabled={!inputs.race}>{sessions.map(s => <option key={s} value={s}>{s}</option>)}</select>
@@ -350,7 +350,7 @@ function Dashboard({ session, handleLogout }) {
 
       {/* RACE DISTRIBUTION VIEW */}
       {isRaceOrPractice && raceLapData && !loading && (
-          <div style={{ display: 'grid', gridTemplateColumns: '7fr 2fr', gap: '20px', marginBottom:'40px', width: '100%' , minWidth:'100%'}}>
+          <div className="dashboard-grid-race">
                <div style={styles.card}>
                    <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
                    <div style={{ height: '400px' }}>
@@ -407,7 +407,7 @@ function Dashboard({ session, handleLogout }) {
 
       {/* DETAILED TELEMETRY */}
       {telemetryData && !loading && Object.keys(telemetryData.drivers).length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '20px' }}>
+          <div className="dashboard-grid-telemetry">
               
               {/* CHARTS */}
               <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
@@ -422,7 +422,7 @@ function Dashboard({ session, handleLogout }) {
                 <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>THROTTLE (%)</h5><button onClick={() => throttleChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '200px'}}><Line ref={throttleChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('throttle', 0) }} options={{...commonOptions, scales: {y: {min:0, max:105, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div></div>
                 <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>BRAKE PRESSURE (%)</h5><button onClick={() => brakeChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '200px'}}><Line ref={brakeChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('brake', 0) }} options={{...commonOptions, scales: {y: {min:0, max:105, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div></div>
                 
-                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px'}}>
+                <div className="charts-split">
                     <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>RPM</h5><button onClick={() => rpmChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '150px'}}><Line ref={rpmChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('rpm') }} options={commonOptions} plugins={[renderSectorPlugin()]} /></div></div>
                     <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>LONGITUDINAL G</h5><button onClick={() => longGChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '150px'}}><Line ref={longGChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('long_g') }} options={commonOptions} plugins={[renderSectorPlugin()]} /></div></div>
                 </div>
