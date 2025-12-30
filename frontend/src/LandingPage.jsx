@@ -203,9 +203,9 @@ function LandingPage({ onLoginSuccess }) {
         </motion.h2>
         <div className="cards-wrapper">
             {[ 
-              { title: "1. Select Race", desc: "Access the full archive from 2018-2024.", delay: 0 },
-              { title: "2. Choose Drivers", desc: "Head-to-head comparison of any two drivers.", delay: 0.2 },
-              { title: "3. Analyze Gaps", desc: "Pinpoint braking points and throttle traces.", delay: 0.4 }
+              { title: "1. Select Race", desc: "Access the full archive from 2021.", delay: 0 },
+              { title: "2. Choose Drivers", desc: "Head-to-head comparison between any drivers.", delay: 0.2 },
+              { title: "3. Analyse Gaps", desc: "Pinpoint braking points and throttle traces.", delay: 0.4 }
             ].map((step, i) => (
                 <motion.div 
                     key={i}
