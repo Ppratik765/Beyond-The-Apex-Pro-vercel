@@ -38,7 +38,7 @@ const TYRE_EMOJIS = {
     'INTERMEDIATE': '🟢', 'WET': '🔵', 'UNKNOWN': '❓'
 };
 
-function Dashboard() {
+function Dashboard({ session, handleLogout }) {
     // If we are in production (Vite sets this), use a relative path which Vercel rewrites.
     // If local, use the full localhost URL.
   const API_BASE = "https://f1-experimental.zeabur.app";
