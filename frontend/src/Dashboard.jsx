@@ -79,7 +79,7 @@ function Dashboard({ session, handleLogout }) {
   // Assuming axios base URL is set or using absolute paths. 
   // IMPORTANT: Ensure this matches your LandingPage/App logic. 
   // If you are using Zeabur/Render, replace 'http://localhost:8000' with your variable or URL.
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'; // Default to localhost if not set
+  const API_BASE = import.meta.env.VITE_API_URL || 'https://f1-backend.zeabur.app'; // Default to localhost if not set
 
   useEffect(() => {
       axios.get(`${API_BASE}/years`).then(res => {
