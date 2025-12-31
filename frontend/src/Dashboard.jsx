@@ -17,10 +17,10 @@ const COLORS = {
     textDim: 'var(--text-secondary)', // Gray
     border: 'rgba(255, 255, 255, 0.1)',
     grid: 'rgba(255, 255, 255, 0.05)',
-    // User Requested Map Colors:
-    s1: '#ffe119',       // Yellow
-    s2: 'var(--neon-blue)', // Cyan
-    s3: 'var(--f1-red)'  // Red
+    // Hardcoded Sector Colors for visibility
+    s1: '#ffe119', // Yellow
+    s2: '#00f3ff', // Cyan
+    s3: '#ff004d'  // Red
 };
 
 const DRIVER_COLORS = [
@@ -58,6 +58,19 @@ const TYRE_EMOJIS = {
 Chart.defaults.color = '#a0a0b0';
 Chart.defaults.font.family = '"Titillium Web", sans-serif';
 
+// --- HELPER FUNCTIONS (Moved Outside to avoid ReferenceError) ---
+const formatTime = (s) => { 
+    if (!s) return "-"; 
+    const m = Math.floor(s/60); 
+    const sc = Math.floor(s%60); 
+    const ms = Math.round((s%1)*1000); 
+    return `${m}:${sc.toString().padStart(2,'0')}.${ms.toString().padStart(3,'0')}`; 
+};
+
+const getSectorColor = (val, best) => (val <= best + 0.001 ? COLORS.neon : '#666');
+
+const getTyreColor = (c) => TYRE_COLORS[c] || TYRE_COLORS['UNKNOWN'];
+
 function Dashboard({ session, handleLogout }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -89,7 +102,9 @@ function Dashboard({ session, handleLogout }) {
 
   // Track Map State
   const [isMapExpanded, setIsMapExpanded] = useState(false);
-  const [mapHoverText, setMapHoverText] = useState('');
+  const [mapPosition, setMapPosition] = useState({ x: 0, y: 0 }); // Will init on expand
+  const isDragging = useRef(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
 
   // Refs
   const deltaChartRef = useRef(null);
@@ -183,6 +198,7 @@ function Dashboard({ session, handleLogout }) {
     else fetchDetailedTelemetry();
   };
 
+  // --- MEMOIZED DATA (Bug Fixed: helpers are now available) ---
   const raceDistributionData = useMemo(() => {
     if(!raceLapData || !activeDrivers.length) return { datasets: [] };
     const plotData = []; const pointColors = []; const borderColors = []; const borderCmds = []; const radiuses = [];
@@ -225,9 +241,6 @@ function Dashboard({ session, handleLogout }) {
   const resetAllCharts = () => {
     [deltaChartRef, speedChartRef, throttleChartRef, brakeChartRef, rpmChartRef, longGChartRef].forEach(ref => { if (ref.current) ref.current.resetZoom(); });
   };
-  const formatTime = (s) => { if (!s) return "-"; const m = Math.floor(s/60); const sc = Math.floor(s%60); const ms = Math.round((s%1)*1000); return `${m}:${sc.toString().padStart(2,'0')}.${ms.toString().padStart(3,'0')}`; };
-  const getSectorColor = (val, best) => (val <= best + 0.001 ? COLORS.neon : '#666');
-  const getTyreColor = (c) => TYRE_COLORS[c] || TYRE_COLORS['UNKNOWN'];
 
   const telemetryOptions = {
     animation: false, maintainAspectRatio: false, 
@@ -284,7 +297,7 @@ function Dashboard({ session, handleLogout }) {
     }));
   };
 
-  // --- TRACK MAP DATA ---
+  // --- TRACK MAP LOGIC ---
   const getTrackMapData = () => {
       if(!telemetryData) return { datasets: [] };
       const driverKey = Object.keys(telemetryData.drivers)[0]; 
@@ -297,25 +310,29 @@ function Dashboard({ session, handleLogout }) {
       const s1 = [], s2 = [], s3 = [];
       t.distance.forEach((d, i) => {
           const pt = { x: t.x[i], y: t.y[i] };
+          
+          // Strict Sector Segregation with tiny overlap for connectivity
           if(d <= s1End) s1.push(pt);
+          
           if(d >= s1End && d <= s2End) s2.push(pt);
-          else if(i > 0 && t.distance[i-1] < s1End && d > s1End) s2.push(pt);
+          else if(i > 0 && t.distance[i-1] < s1End && d > s1End) s2.push(pt); // bridging point
+
           if(d >= s2End) s3.push(pt);
-          else if(i > 0 && t.distance[i-1] < s2End && d > s2End) s3.push(pt);
+          else if(i > 0 && t.distance[i-1] < s2End && d > s2End) s3.push(pt); // bridging point
       });
 
       const datasets = [
-          { label: 'S1', data: s1, borderColor: COLORS.s1, borderWidth: isMapExpanded?5:3, pointRadius: 0, showLine: true },
-          { label: 'S2', data: s2, borderColor: COLORS.s2, borderWidth: isMapExpanded?5:3, pointRadius: 0, showLine: true },
-          { label: 'S3', data: s3, borderColor: COLORS.s3, borderWidth: isMapExpanded?5:3, pointRadius: 0, showLine: true },
+          { label: 'S1', data: s1, borderColor: COLORS.s1, borderWidth: isMapExpanded?5:4, pointRadius: 0, showLine: true },
+          { label: 'S2', data: s2, borderColor: COLORS.s2, borderWidth: isMapExpanded?5:4, pointRadius: 0, showLine: true },
+          { label: 'S3', data: s3, borderColor: COLORS.s3, borderWidth: isMapExpanded?5:4, pointRadius: 0, showLine: true },
       ];
 
       if(hoverIndex !== null && t.x[hoverIndex]) {
           datasets.push({
               label: 'Car',
               data: [{ x: t.x[hoverIndex], y: t.y[hoverIndex] }],
-              backgroundColor: 'black',
-              borderColor: 'white',
+              backgroundColor: 'white',
+              borderColor: 'black',
               borderWidth: 2,
               pointRadius: isMapExpanded ? 10 : 6,
           });
@@ -360,19 +377,62 @@ function Dashboard({ session, handleLogout }) {
       </div>
   );
 
+  // --- DRAGGABLE WIDGET LOGIC ---
+  const toggleMapExpand = () => {
+      if (!isMapExpanded) {
+          // OPEN: Reset position to Top-Right default
+          const defaultX = window.innerWidth - 550; // approx width + margin
+          setMapPosition({ x: defaultX, y: 120 });
+      }
+      setIsMapExpanded(!isMapExpanded);
+  };
+
+  const handleMouseDown = (e) => {
+    isDragging.current = true;
+    dragOffset.current = {
+        x: e.clientX - mapPosition.x,
+        y: e.clientY - mapPosition.y
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleMouseMove = (e) => {
+      if (!isDragging.current) return;
+      setMapPosition({
+          x: e.clientX - dragOffset.current.x,
+          y: e.clientY - dragOffset.current.y
+      });
+  };
+
+  const handleMouseUp = () => {
+      isDragging.current = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <div style={{ padding: '20px', background: COLORS.bg, color: COLORS.text, minHeight: '100vh', fontFamily: '"Titillium Web", sans-serif' }}>
       
-      {/* EXPANDED MAP OVERLAY */}
+      {/* EXPANDED FLOATING WIDGET */}
       {isMapExpanded && telemetryData && (
-          <div style={styles.expandedMapOverlay} onClick={() => setIsMapExpanded(false)}>
+          <div 
+             style={{
+                 ...styles.floatingWidget,
+                 left: mapPosition.x,
+                 top: mapPosition.y
+             }}
+          >
               <div 
-                 style={styles.expandedMapContainer} 
-                 onMouseEnter={() => setMapHoverText('CLICK TO COLLAPSE')} 
-                 onMouseLeave={() => setMapHoverText('')}
+                style={styles.floatingHeader}
+                onMouseDown={handleMouseDown}
+                title="Drag to move"
               >
+                  <span>📍 TRACK MAP</span>
+                  <button onClick={toggleMapExpand} style={styles.closeBtn}>✕</button>
+              </div>
+              <div style={{height: '450px', padding:'10px'}}>
                   <Scatter data={getTrackMapData()} options={trackMapOptions} />
-                  {mapHoverText && <div style={styles.mapHoverText}>{mapHoverText}</div>}
               </div>
           </div>
       )}
@@ -386,15 +446,9 @@ function Dashboard({ session, handleLogout }) {
         {/* RIGHT SIDE: MAP TOGGLE + LOGOUT */}
         <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
              {telemetryData && !isMapExpanded && (
-                 <div style={{position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-                     {/* TOOLTIP ABOVE BUTTON */}
+                 <div style={{position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor:'pointer'}} onClick={toggleMapExpand} className="map-trigger">
                      <div style={styles.tooltipAbove}>CLICK TO EXPAND</div>
-                     
-                     {/* CIRCULAR MAP BUTTON */}
-                     <div 
-                        style={styles.mapButton} 
-                        onClick={() => setIsMapExpanded(true)}
-                     >
+                     <div style={styles.mapButton}>
                         <Scatter data={getTrackMapData()} options={{...trackMapOptions, animation: false}} />
                      </div>
                  </div>
@@ -478,13 +532,13 @@ function Dashboard({ session, handleLogout }) {
           </div>
       )}
 
-      {/* DETAILED TELEMETRY (RESTORED ORIGINAL LAYOUT) */}
+      {/* DETAILED TELEMETRY */}
       {telemetryData && !loading && Object.keys(telemetryData.drivers).length > 0 && (
           <div className="dashboard-grid-telemetry">
               
               <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
                 
-                {/* DELTA TO POLE (TOP) */}
+                {/* DELTA */}
                 <div style={styles.chartContainer}>
                     <div style={styles.headerStyle}><h5 style={styles.chartTitle}>DELTA TO {isRaceOrPractice ? 'FASTEST' : 'POLE'} (SEC)</h5><button onClick={() => deltaChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div>
                     <div style={{height: '200px'}}><Line ref={deltaChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('delta_to_pole') }} options={{...telemetryOptions, scales:{...telemetryOptions.scales, y:{reverse:true, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div>
@@ -580,53 +634,52 @@ const styles = {
     miniBtn: { padding: '4px 10px', background: 'rgba(255,255,255,0.05)', color: COLORS.textDim, border: `1px solid ${COLORS.border}`, borderRadius: '4px', cursor: 'pointer', fontSize: '0.7em' },
     errorBanner: { padding: '15px', background: 'rgba(255, 0, 0, 0.1)', borderRadius: '8px', marginBottom: '20px', borderLeft: `4px solid ${COLORS.primary}`, color: '#ffaaaa' },
     
-    // --- BUTTON & MAP STYLES ---
+    // --- MAP WIDGET STYLES ---
     mapButton: {
-        width: '40px',
-        height: '40px',
-        borderRadius: '50%',
-        background: '#1a1a2e',
-        border: `1px solid ${COLORS.neon}`,
-        cursor: 'pointer',
-        overflow: 'hidden',
+        width: '40px', height: '40px', borderRadius: '50%',
+        background: '#1a1a2e', border: `1px solid ${COLORS.neon}`,
+        cursor: 'pointer', overflow: 'hidden',
         boxShadow: '0 0 10px rgba(0, 243, 255, 0.2)',
         display: 'flex', alignItems: 'center', justifyContent: 'center'
     },
     tooltipAbove: {
-        position: 'absolute',
-        top: '-30px',
-        whiteSpace: 'nowrap',
-        background: 'rgba(0,0,0,0.8)',
-        padding: '4px 8px',
-        borderRadius: '4px',
-        fontSize: '0.7em',
-        color: COLORS.neon,
-        pointerEvents: 'none',
-        opacity: 0,
-        transition: 'opacity 0.2s',
-        // Show on hover parent div
-        ':hover': { opacity: 1 } // Note: Inline hover styles in React need state or CSS. 
-        // Logic implemented via structure in render()
+        position: 'absolute', top: '-30px', whiteSpace: 'nowrap',
+        background: 'rgba(0,0,0,0.8)', padding: '4px 8px', borderRadius: '4px',
+        fontSize: '0.7em', color: COLORS.neon, pointerEvents: 'none',
+        opacity: 0, transition: 'opacity 0.2s',
     },
-    expandedMapOverlay: {
-        position: 'fixed', top:0, left:0, width:'100vw', height:'100vh',
-        background: 'rgba(0,0,0,0.6)', backdropFilter:'blur(5px)',
-        zIndex: 9999, display:'flex', justifyContent:'center', alignItems:'center',
-        cursor: 'pointer' // clicking bg closes it
-    },
-    expandedMapContainer: {
-        width: '70vh', height: '70vh',
+    floatingWidget: {
+        position: 'fixed', width: '500px',
         background: 'rgba(20, 20, 35, 0.95)',
-        border: `2px solid ${COLORS.neon}`,
-        borderRadius: '20px',
-        position: 'relative',
-        boxShadow: '0 0 50px rgba(0,0,0,0.8)',
-        cursor: 'default' // prevent bg click
+        border: `2px solid ${COLORS.neon}`, borderRadius: '12px',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+        zIndex: 9999,
+        backdropFilter: 'blur(10px)',
+        animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
     },
-    mapHoverText: {
-        position: 'absolute', top: '15px', width: '100%', textAlign: 'center',
-        color: 'rgba(255,255,255,0.5)', fontSize: '0.9em', letterSpacing: '2px', pointerEvents: 'none'
+    floatingHeader: {
+        padding: '12px 15px',
+        background: 'rgba(255,255,255,0.05)',
+        borderBottom: `1px solid ${COLORS.border}`,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        cursor: 'move', // Visual cue for dragging
+        color: COLORS.neon, fontWeight: 'bold', fontSize: '0.9em', letterSpacing: '1px'
+    },
+    closeBtn: {
+        background: 'transparent', border:'none', color:'#888', 
+        fontSize:'1.2em', cursor:'pointer', padding:'0 5px'
     }
 };
+
+// Add global style for hover tooltip and animation
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+  .map-trigger:hover .tooltip-above { opacity: 1 !important; }
+  @keyframes popIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+  }
+`;
+document.head.appendChild(styleSheet);
 
 export default Dashboard;
