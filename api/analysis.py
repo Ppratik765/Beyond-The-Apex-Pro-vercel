@@ -6,16 +6,29 @@ import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
+
 # Updated Cache Logic for Persistent Storage
+
 if os.environ.get('ZEABUR_SERVICE_ID') or os.path.exists("/app/api/cache"):
+
     # Use the mounted volume path
+
     CACHE_DIR = "/app/api/cache"
+
 else:
+
     # Fallback for local dev
+
     CACHE_DIR = os.path.join(BASE_DIR, 'cache')
 
+
+
 if not os.path.exists(CACHE_DIR):
+
     os.makedirs(CACHE_DIR, exist_ok=True)
+
+
 
 fastf1.Cache.enable_cache(CACHE_DIR)
 
@@ -49,7 +62,6 @@ def get_sessions_for_race(year, race_name):
 
 def get_race_lap_distribution(year, race, session_type, driver_list):
     session = fastf1.get_session(year, race, session_type)
-    # Load basic data (results + laps)
     session.load(telemetry=False, weather=True, messages=False) 
 
     # --- 1. Determine Session Winner/Leader ---
@@ -57,22 +69,16 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
     winner_label = "WINNER"
     
     try:
-        # Logic A: Practice Session -> Look for Fastest Lap
         if "Practice" in session_type:
             fastest_lap = session.laps.pick_fastest()
             driver_code = fastest_lap['Driver']
             winner_label = "FASTEST LAP"
-            
-            # Try to get full name from results
             try:
                 row = session.results.loc[session.results['Abbreviation'] == driver_code].iloc[0]
                 winner_name = f"{row['FirstName']} {row['LastName']}"
             except:
-                winner_name = driver_code # Fallback to 'VER' etc.
-
-        # Logic B: Race or Sprint -> Look for Classification P1
+                winner_name = driver_code
         else:
-            # Sort by Position (handles penalties/DSQ better than raw lap times)
             results = session.results.sort_values(by='Position')
             if not results.empty:
                 p1 = results.iloc[0]
@@ -82,7 +88,6 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
                 winner_label = "SPRINT WINNER"
             else:
                 winner_label = "RACE WINNER"
-
     except Exception as e:
         print(f"Winner Error: {e}")
         pass
@@ -103,15 +108,17 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
     # --- 3. Process Laps & Stints ---
     lap_data = []
     stint_data = {}
+    deg_insights = []
 
     for d in driver_list:
         try:
-            # Use pandas filtering
             driver_laps = session.laps[session.laps['Driver'] == d].copy().reset_index()
-            
             driver_stints = []
             current_stint = None
             
+            # For degradation calc
+            stint_laps_cache = []
+
             for idx, lap in driver_laps.iterrows():
                 # Scatter Plot Data
                 if not pd.isna(lap['LapTime']):
@@ -119,10 +126,11 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
                     compound = str(raw_compound).upper() if raw_compound else 'UNKNOWN'
                     if compound in ['NAN', '', 'NONE']: compound = 'UNKNOWN'
                     
+                    lt_seconds = lap['LapTime'].total_seconds()
                     lap_data.append({
                         'driver': d,
                         'lap_number': int(lap['LapNumber']),
-                        'lap_time_seconds': lap['LapTime'].total_seconds(),
+                        'lap_time_seconds': lt_seconds,
                         'compound': compound
                     })
 
@@ -133,21 +141,35 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
                 if compound in ['NAN', '', 'NONE']: compound = 'UNKNOWN'
                 
                 is_pit_entry = not pd.isna(lap['PitInTime'])
+                is_pit_out = not pd.isna(lap['PitOutTime'])
 
                 if current_stint is None:
                     current_stint = {'compound': compound, 'start': lap_num, 'end': lap_num}
+                    stint_laps_cache = []
                 elif compound != current_stint['compound']:
+                    # Finish previous stint
                     driver_stints.append(current_stint)
+                    # Calculate Deg for previous stint
+                    calculate_degradation(d, current_stint, stint_laps_cache, deg_insights)
+                    
                     current_stint = {'compound': compound, 'start': lap_num, 'end': lap_num}
+                    stint_laps_cache = []
                 else:
                     current_stint['end'] = lap_num
                 
+                # Add valid lap times to cache for deg calc (ignore in/out laps ideally)
+                if not pd.isna(lap['LapTime']) and not is_pit_entry and not is_pit_out:
+                    stint_laps_cache.append({'n': lap_num, 't': lap['LapTime'].total_seconds()})
+
                 if is_pit_entry:
                     driver_stints.append(current_stint)
+                    calculate_degradation(d, current_stint, stint_laps_cache, deg_insights)
                     current_stint = None
+                    stint_laps_cache = []
             
             if current_stint:
                 driver_stints.append(current_stint)
+                calculate_degradation(d, current_stint, stint_laps_cache, deg_insights)
             
             stint_data[d] = driver_stints
 
@@ -157,21 +179,48 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
     if not lap_data:
          raise Exception("No valid lap data found.")
 
-    # Return structure now includes 'winner_label'
     return {
         "laps": lap_data, 
         "stints": stint_data, 
         "race_winner": winner_name, 
         "winner_label": winner_label, 
-        "weather": weather
+        "weather": weather,
+        "ai_insights": deg_insights[:5] # Limit to top 5 interesting ones
     }
+
+def calculate_degradation(driver, stint, laps, insights_list):
+    if len(laps) < 4: return # Need at least 4 laps for a trend
+    
+    # Simple Linear Regression: LapTime = slope * LapNum + intercept
+    x = np.array([l['n'] for l in laps])
+    y = np.array([l['t'] for l in laps])
+    
+    # Filter outliers (Yellow flags etc) - basic z-score filter
+    mean_y = np.mean(y)
+    std_y = np.std(y)
+    mask = np.abs(y - mean_y) < 2 * std_y # Keep within 2 std devs
+    if np.sum(mask) < 4: return
+    
+    slope, _ = np.polyfit(x[mask], y[mask], 1)
+    
+    compound = stint['compound']
+    if compound == 'UNKNOWN': return
+
+    # Insight Logic
+    if slope > 0.08:
+        insights_list.append(f"{driver} {compound}s degraded heavily (+{slope:.2f}s/lap).")
+    elif slope > 0.03:
+        insights_list.append(f"{driver} {compound}s degraded by {slope:.2f}s per lap.")
+    elif slope > -0.01 and slope < 0.01:
+        insights_list.append(f"{driver} {compound}s held steady (no deg).")
+    elif slope < -0.02:
+        insights_list.append(f"{driver} got faster on {compound}s (-{abs(slope):.2f}s/lap).")
 
 
 def get_telemetry_multi(year, race, session_type, driver_list, specific_laps=None):
     session = fastf1.get_session(year, race, session_type)
     session.load()
     
-    # Weather
     weather = {"air_temp": 0, "track_temp": 0, "humidity": 0, "rain": False}
     try:
         if hasattr(session, 'weather_data') and not session.weather_data.empty:
@@ -191,7 +240,6 @@ def get_telemetry_multi(year, race, session_type, driver_list, specific_laps=Non
     max_dist = 0
     loaded_laps = {} 
 
-    # Load Laps
     if specific_laps and len(specific_laps) > 0:
         for item in specific_laps:
             d = item['driver']
@@ -238,6 +286,10 @@ def get_telemetry_multi(year, race, session_type, driver_list, specific_laps=Non
         throttle = np.interp(x_new, tel['Distance'], tel['Throttle'])
         brake_raw = np.interp(x_new, tel['Distance'], tel['Brake'])
         
+        # Track Map Coordinates
+        x_track = np.interp(x_new, tel['Distance'], tel['X']) if 'X' in tel else np.zeros_like(x_new)
+        y_track = np.interp(x_new, tel['Distance'], tel['Y']) if 'Y' in tel else np.zeros_like(x_new)
+
         speed_ms = speed / 3.6
         dv = np.gradient(speed_ms)
         dt = np.gradient(time_interp)
@@ -265,7 +317,9 @@ def get_telemetry_multi(year, race, session_type, driver_list, specific_laps=Non
                 'gear': np.nan_to_num(gear, nan=0.0).tolist(),
                 'long_g': np.nan_to_num(long_accel_g, nan=0.0).tolist(),
                 'delta_to_pole': np.nan_to_num(delta_to_pole, nan=0.0).tolist(),
-                'time': np.nan_to_num(time_interp, nan=0.0).tolist() 
+                'time': np.nan_to_num(time_interp, nan=0.0).tolist(),
+                'x': np.nan_to_num(x_track, nan=0.0).tolist(),
+                'y': np.nan_to_num(y_track, nan=0.0).tolist()
             },
             "sectors": [
                 lap['Sector1Time'].total_seconds(), 
@@ -304,10 +358,7 @@ def generate_ai_insights(multi_data, k1, k2):
     dist = np.array(t1['distance'])
     speed1 = np.array(t1['speed'])
     speed2 = np.array(t2['speed'])
-    throttle1 = np.array(t1['throttle'])
-    throttle2 = np.array(t2['throttle'])
     brake1 = np.array(t1['brake'])
-    brake2 = np.array(t2['brake'])
     delta = np.array(t2['time']) - np.array(t1['time'])
     insights = []
     chunk_size = 250 
@@ -331,7 +382,3 @@ def generate_ai_insights(multi_data, k1, k2):
     unique_insights = list(set(insights))
 
     return unique_insights[:15] if unique_insights else ["No significant differences found."]
-
-
-
-
