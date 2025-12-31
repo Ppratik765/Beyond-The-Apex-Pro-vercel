@@ -103,10 +103,12 @@ function Dashboard({ session, handleLogout }) {
   // Track Map State
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [mapPosition, setMapPosition] = useState({ x: 0, y: 0 }); // Will init on expand
+  const [mapSize, setMapSize] = useState({ width: 500, height: 480 });
   const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
 
   // Refs
+  const widgetRef = useRef(null);
   const deltaChartRef = useRef(null);
   const speedChartRef = useRef(null);
   const throttleChartRef = useRef(null);
@@ -406,36 +408,51 @@ function Dashboard({ session, handleLogout }) {
   };
 
   const handleMouseUp = () => {
-      isDragging.current = false;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-  };
-
+    isDragging.current = false;
+    
+    // NEW: Save the new size when interaction ends (persists as new default)
+    if (widgetRef.current) {
+        setMapSize({
+            width: widgetRef.current.offsetWidth,
+            height: widgetRef.current.offsetHeight
+        });
+    }
+    
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+};
   return (
     <div style={{ padding: '20px', background: COLORS.bg, color: COLORS.text, minHeight: '100vh', fontFamily: '"Titillium Web", sans-serif' }}>
       
-      {/* EXPANDED FLOATING WIDGET */}
-      {isMapExpanded && telemetryData && (
-          <div 
-             style={{
-                 ...styles.floatingWidget,
-                 left: mapPosition.x,
-                 top: mapPosition.y
-             }}
-          >
-              <div 
-                style={styles.floatingHeader}
-                onMouseDown={handleMouseDown}
-                title="Drag to move"
-              >
-                  <span>📍 TRACK MAP</span>
-                  <button onClick={toggleMapExpand} style={styles.closeBtn}>✕</button>
-              </div>
-              <div style={{height: '450px', padding:'10px'}}>
-                  <Scatter data={getTrackMapData()} options={trackMapOptions} />
-              </div>
-          </div>
-      )}
+        {/* EXPANDED FLOATING WIDGET */}
+        {isMapExpanded && telemetryData && (
+            <div 
+               ref={widgetRef} // Connect the ref
+               style={{
+                   ...styles.floatingWidget,
+                   left: mapPosition.x,
+                   top: mapPosition.y,
+                   width: `${mapSize.width}px`,   // Use dynamic width
+                   height: `${mapSize.height}px`, // Use dynamic height
+                   resize: 'both',                // Enable resizing
+                   overflow: 'hidden'             // Required for resize handle
+               }}
+            >
+                <div 
+                  style={styles.floatingHeader}
+                  onMouseDown={handleMouseDown}
+                  title="Drag Header to Move | Drag Bottom-Right to Resize"
+                >
+                    <span>📍 TRACK MAP</span>
+                    <button onClick={toggleMapExpand} style={styles.closeBtn}>✕</button>
+                </div>
+                
+                {/* Chart container fills remaining height */}
+                <div style={{height: 'calc(100% - 50px)', padding:'10px'}}>
+                    <Scatter data={getTrackMapData()} options={trackMapOptions} />
+                </div>
+            </div>
+        )}
 
       {/* HEADER BAR */}
       <div className="dashboard-header" style={styles.topBar}>
@@ -484,9 +501,9 @@ function Dashboard({ session, handleLogout }) {
       {/* RACE DISTRIBUTION VIEW */}
       {isRaceOrPractice && raceLapData && !loading && (
           <div className="dashboard-grid-race">
-               <div style={styles.card}>
+               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '100%'}}>
                    <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
-                   <div style={{ height: '400px' }}>
+                   <div style={{ flex: 1, minHeight: '0', position: 'relative' }}>
                        <Scatter ref={distributionChartRef} options={distributionOptions} data={raceDistributionData} />
                    </div>
                    <div style={{marginTop:'15px', display:'flex', gap:'15px', justifyContent:'center', fontSize:'0.8em', color: COLORS.textDim}}>
