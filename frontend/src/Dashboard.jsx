@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { Line, Scatter } from 'react-chartjs-2';
 import 'chart.js/auto';
@@ -16,7 +16,10 @@ const COLORS = {
     text: 'var(--text-primary)',   // White
     textDim: 'var(--text-secondary)', // Gray
     border: 'rgba(255, 255, 255, 0.1)',
-    grid: 'rgba(255, 255, 255, 0.05)'
+    grid: 'rgba(255, 255, 255, 0.05)',
+    s1: 'var(--neon-blue)',
+    s2: 'var(--f1-red)',
+    s3: '#ffe119'
 };
 
 const DRIVER_COLORS = [
@@ -99,10 +102,14 @@ function Dashboard({ session, handleLogout }) {
   const [stintData, setStintData] = useState(null);  
   const [raceWinner, setRaceWinner] = useState(null);
   const [raceWeather, setRaceWeather] = useState(null);
-  const [raceInsights, setRaceInsights] = useState([]); // New for Tyre Deg
+  const [raceInsights, setRaceInsights] = useState([]);
   
   const [selectedLaps, setSelectedLaps] = useState([]); 
   const [hoverIndex, setHoverIndex] = useState(null); // Sync across charts
+
+  // Track Map State
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
+  const [mapHoverText, setMapHoverText] = useState('');
 
   // Refs
   const deltaChartRef = useRef(null);
@@ -163,7 +170,8 @@ function Dashboard({ session, handleLogout }) {
             setStintData(res.data.data.stints);
             setRaceWinner({ name: res.data.data.race_winner, label: res.data.data.winner_label });
             setRaceWeather(res.data.data.weather);
-            setRaceInsights(res.data.data.ai_insights || []); // Store deg insights
+            setRaceInsights(res.data.data.ai_insights || []);
+            setActiveDrivers(inputs.drivers.split(',').map(d => d.trim().toUpperCase())); // Ensure active drivers are set
       } catch (err) { setError(err.message || "Failed to connect."); }
       setLoading(false);
   };
@@ -195,10 +203,33 @@ function Dashboard({ session, handleLogout }) {
     else fetchDetailedTelemetry();
   };
 
+  // --- MEMOIZED DATA PROCESSING (Fixes Jitter) ---
+  const raceDistributionData = useMemo(() => {
+    if(!raceLapData || !activeDrivers.length) return { datasets: [] };
+    const plotData = []; const pointColors = []; const borderColors = []; const borderCmds = []; const radiuses = [];
+    
+    activeDrivers.forEach((driver, dIdx) => {
+        const driverLaps = raceLapData.filter(d => d.driver === driver);
+        driverLaps.forEach(lap => {
+            const isSelected = selectedLaps.some(s => s.driver === driver && s.lap === lap.lap_number);
+            // Calculate jitter ONCE here
+            const jitter = (Math.random() - 0.5) * 0.4;
+            
+            plotData.push({ x: dIdx + jitter, y: lap.lap_time_seconds, rawLapData: lap });
+            pointColors.push(isSelected ? COLORS.neon : getTyreColor(lap.compound));
+            borderColors.push(isSelected ? COLORS.neon : 'rgba(0,0,0,0.5)');
+            borderCmds.push(isSelected ? 2 : 1);
+            radiuses.push(isSelected ? 6 : 3.5);
+        });
+    });
+    return { datasets: [{ label: 'Laps', data: plotData, pointStyle: 'circle', pointBackgroundColor: pointColors, pointBorderColor: borderColors, pointBorderWidth: borderCmds, pointRadius: radiuses }] };
+  }, [raceLapData, selectedLaps, activeDrivers]); // Dependencies: only recalc if these change
+
   const handleDistributionClick = (event, elements) => {
       if(elements.length === 0 || !raceLapData) return;
       const dataIndex = elements[0].index;
-      const rawPointData = distributionChartRef.current.data.datasets[0].data[dataIndex];
+      // Access data securely via the memoized object
+      const rawPointData = raceDistributionData.datasets[0].data[dataIndex];
       
       if(rawPointData && rawPointData.rawLapData) {
           const { driver, lap_number } = rawPointData.rawLapData;
@@ -221,8 +252,9 @@ function Dashboard({ session, handleLogout }) {
   const getSectorColor = (val, best) => (val <= best + 0.001 ? COLORS.neon : '#666');
   const getTyreColor = (c) => TYRE_COLORS[c] || TYRE_COLORS['UNKNOWN'];
 
-  // --- CHART OPTIONS WITH HOVER SYNC ---
-  const commonOptions = {
+  // --- CHART OPTIONS ---
+  // Telemetry charts (affect hoverIndex)
+  const telemetryOptions = {
     animation: false, maintainAspectRatio: false, 
     interaction: { mode: 'index', intersect: false },
     onHover: (e, elements) => {
@@ -231,6 +263,39 @@ function Dashboard({ session, handleLogout }) {
     },
     plugins: { legend: { display: false }, zoom: { zoom: { drag: { enabled: true, backgroundColor: 'rgba(0, 243, 255, 0.2)', borderColor: COLORS.neon, borderWidth: 1 }, mode: 'x' }, pan: { enabled: true, mode: 'x', modifierKey: 'shift' } } },
     scales: { x: { type: 'linear', ticks: { color: '#888', font: {family: '"Titillium Web"'}}, grid: { color: COLORS.grid } }, y: { ticks: { color: '#888', font: {family: '"Titillium Web"'} }, grid: { color: COLORS.grid } } }
+  };
+
+  // Distribution chart (Isolated: NO onHover setting hoverIndex)
+  const distributionOptions = {
+      animation: false, maintainAspectRatio: false, onClick: handleDistributionClick,
+      plugins: {
+          legend: { display: false }, zoom: false,
+          tooltip: { 
+              backgroundColor: 'rgba(20, 20, 30, 0.9)',
+              titleColor: COLORS.neon,
+              bodyFont: { family: '"Titillium Web"' },
+              callbacks: { label: (ctx) => `${ctx.raw.rawLapData.driver} L${ctx.raw.rawLapData.lap_number}: ${formatTime(ctx.raw.rawLapData.lap_time_seconds)} (${ctx.raw.rawLapData.compound})` } 
+          }
+      },
+      scales: {
+          x: { 
+              type: 'linear', offset: false, 
+              title: { display: true, text: 'DRIVERS', color: '#666', font:{weight:'bold'} },
+              ticks: { 
+                  color: 'white', font: { size: 14, weight: 'bold', family: '"Titillium Web"' }, 
+                  stepSize: 1,
+                  callback: (val) => activeDrivers[Math.round(val)] || '', 
+                  autoSkip: false
+              }, 
+              grid: { display: false }, 
+              min: -0.5, max: activeDrivers.length - 0.5 
+          },
+          y: { 
+              ticks: { color: '#888', callback: (val) => formatTime(val), stepSize: 0.1 }, 
+              grid: { color: COLORS.grid }, 
+              title: { display: true, text: 'LAP TIME (m:ss.ms)', color: '#666', font:{weight:'bold'} } 
+          }
+      }
   };
 
   const getDatasets = (metric, tension = 0) => {
@@ -245,41 +310,45 @@ function Dashboard({ session, handleLogout }) {
     }));
   };
 
-  // --- TRACK MAP DATA GEN ---
+  // --- TRACK MAP DATA ---
   const getTrackMapData = () => {
       if(!telemetryData) return { datasets: [] };
-      const driverKey = Object.keys(telemetryData.drivers)[0]; // Use first driver for map shape
+      const driverKey = Object.keys(telemetryData.drivers)[0]; 
       const t = telemetryData.drivers[driverKey].telemetry;
       const totalLen = telemetryData.track_length;
       
-      // Color code segments
       const s1End = totalLen * 0.33;
       const s2End = totalLen * 0.66;
       
       const s1 = [], s2 = [], s3 = [];
+      
       t.distance.forEach((d, i) => {
           const pt = { x: t.x[i], y: t.y[i] };
-          if(d < s1End) s1.push(pt);
-          else if(d < s2End) s2.push(pt);
-          else s3.push(pt);
+          if(d <= s1End) s1.push(pt);
+          
+          // Overlap: Add to S2 if close to boundary to prevent gaps
+          if(d >= s1End && d <= s2End) s2.push(pt);
+          else if(i > 0 && t.distance[i-1] < s1End && d > s1End) s2.push(pt); // bridging point
+
+          if(d >= s2End) s3.push(pt);
+          else if(i > 0 && t.distance[i-1] < s2End && d > s2End) s3.push(pt); // bridging point
       });
 
       const datasets = [
-          { label: 'S1', data: s1, borderColor: COLORS.neon, borderWidth: 3, pointRadius: 0, showLine: true },
-          { label: 'S2', data: s2, borderColor: COLORS.primary, borderWidth: 3, pointRadius: 0, showLine: true },
-          { label: 'S3', data: s3, borderColor: '#ffe119', borderWidth: 3, pointRadius: 0, showLine: true },
+          { label: 'S1', data: s1, borderColor: COLORS.s1, borderWidth: isMapExpanded?5:3, pointRadius: 0, showLine: true },
+          { label: 'S2', data: s2, borderColor: COLORS.s2, borderWidth: isMapExpanded?5:3, pointRadius: 0, showLine: true },
+          { label: 'S3', data: s3, borderColor: COLORS.s3, borderWidth: isMapExpanded?5:3, pointRadius: 0, showLine: true },
       ];
 
-      // Add Dynamic Black Dot
-      if(hoverIndex !== null) {
+      // Dynamic Black Dot
+      if(hoverIndex !== null && t.x[hoverIndex]) {
           datasets.push({
               label: 'Car',
               data: [{ x: t.x[hoverIndex], y: t.y[hoverIndex] }],
               backgroundColor: 'black',
               borderColor: 'white',
               borderWidth: 2,
-              pointRadius: 8,
-              pointHoverRadius: 8
+              pointRadius: isMapExpanded ? 10 : 6,
           });
       }
 
@@ -311,24 +380,6 @@ function Dashboard({ session, handleLogout }) {
     }
   });
   
-  const getRaceDistributionData = () => {
-    if(!raceLapData) return { datasets: [] };
-    const plotData = []; const pointColors = []; const borderColors = []; const borderCmds = []; const radiuses = [];
-    activeDrivers.forEach((driver, dIdx) => {
-        const driverLaps = raceLapData.filter(d => d.driver === driver);
-        driverLaps.forEach(lap => {
-            const isSelected = selectedLaps.some(s => s.driver === driver && s.lap === lap.lap_number);
-            const jitter = (Math.random() - 0.5) * 0.4;
-            plotData.push({ x: dIdx + jitter, y: lap.lap_time_seconds, rawLapData: lap });
-            pointColors.push(isSelected ? COLORS.neon : getTyreColor(lap.compound));
-            borderColors.push(isSelected ? COLORS.neon : 'rgba(0,0,0,0.5)');
-            borderCmds.push(isSelected ? 2 : 1);
-            radiuses.push(isSelected ? 6 : 3.5);
-        });
-    });
-    return { datasets: [{ label: 'Laps', data: plotData, pointStyle: 'circle', pointBackgroundColor: pointColors, pointBorderColor: borderColors, pointBorderWidth: borderCmds, pointRadius: radiuses }] };
-  };
-
   // Reusable Weather Widget
   const WeatherWidget = ({ weatherData }) => (
       <div style={styles.card}>
@@ -345,6 +396,22 @@ function Dashboard({ session, handleLogout }) {
   return (
     <div style={{ padding: '20px', background: COLORS.bg, color: COLORS.text, minHeight: '100vh', fontFamily: '"Titillium Web", sans-serif' }}>
       
+      {/* FLOATING TRACK MAP WIDGET */}
+      {telemetryData && (
+          <div 
+            style={{
+                ...styles.trackMapWidget,
+                ...(isMapExpanded ? styles.trackMapExpanded : styles.trackMapCollapsed)
+            }}
+            onClick={() => setIsMapExpanded(!isMapExpanded)}
+            onMouseEnter={() => setMapHoverText(isMapExpanded ? 'CLICK TO COLLAPSE' : 'CLICK TO EXPAND')}
+            onMouseLeave={() => setMapHoverText('')}
+          >
+             {mapHoverText && <div style={styles.mapHoverOverlay}>{mapHoverText}</div>}
+             <Scatter data={getTrackMapData()} options={trackMapOptions} />
+          </div>
+      )}
+
       {/* USER HEADER */}
       <div className="dashboard-header" style={styles.topBar}>
         <span style={{ color: COLORS.textDim, fontSize: '0.9em' }}>
@@ -382,7 +449,7 @@ function Dashboard({ session, handleLogout }) {
                <div style={styles.card}>
                    <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
                    <div style={{ height: '400px' }}>
-                       <Scatter ref={distributionChartRef} options={{...commonOptions, onClick: handleDistributionClick, plugins: {legend:{display:false}, zoom:false}}} data={getRaceDistributionData()} />
+                       <Scatter ref={distributionChartRef} options={distributionOptions} data={raceDistributionData} />
                    </div>
                    <div style={{marginTop:'15px', display:'flex', gap:'15px', justifyContent:'center', fontSize:'0.8em', color: COLORS.textDim}}>
                         {Object.entries(TYRE_COLORS).map(([compound, color]) => (compound !== 'UNKNOWN' && <div key={compound} style={{display:'flex', alignItems:'center'}}><div style={{width:'8px', height:'8px', borderRadius:'50%', backgroundColor:color, marginRight:'6px', boxShadow:`0 0 5px ${color}`}}></div>{compound}</div>))}
@@ -434,21 +501,14 @@ function Dashboard({ session, handleLogout }) {
               
               {/* CHARTS */}
               <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
-                {/* TRACK MAP WIDGET (NEW) */}
-                <div style={styles.card}>
-                    <div style={styles.headerStyle}><h5 style={styles.chartTitle}>TRACK MAP</h5></div>
-                    <div style={{height: '250px', background: 'transparent'}}>
-                         <Scatter data={getTrackMapData()} options={trackMapOptions} />
-                    </div>
-                </div>
-
-                <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>SPEED (KM/H)</h5><button onClick={() => speedChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '250px'}}><Line ref={speedChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('speed') }} options={commonOptions} plugins={[renderSectorPlugin()]} /></div></div>
-                <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>THROTTLE (%)</h5><button onClick={() => throttleChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '200px'}}><Line ref={throttleChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('throttle', 0) }} options={{...commonOptions, scales: {y: {min:0, max:105, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div></div>
-                <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>BRAKE PRESSURE (%)</h5><button onClick={() => brakeChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '200px'}}><Line ref={brakeChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('brake', 0) }} options={{...commonOptions, scales: {y: {min:0, max:105, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div></div>
+                
+                <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>SPEED (KM/H)</h5><button onClick={() => speedChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '250px'}}><Line ref={speedChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('speed') }} options={telemetryOptions} plugins={[renderSectorPlugin()]} /></div></div>
+                <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>THROTTLE (%)</h5><button onClick={() => throttleChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '200px'}}><Line ref={throttleChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('throttle', 0) }} options={{...telemetryOptions, scales: {y: {min:0, max:105, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div></div>
+                <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>BRAKE PRESSURE (%)</h5><button onClick={() => brakeChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '200px'}}><Line ref={brakeChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('brake', 0) }} options={{...telemetryOptions, scales: {y: {min:0, max:105, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div></div>
                 
                 <div className="charts-split">
-                    <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>RPM</h5><button onClick={() => rpmChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '150px'}}><Line ref={rpmChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('rpm') }} options={commonOptions} plugins={[renderSectorPlugin()]} /></div></div>
-                    <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>DELTA (SEC)</h5><button onClick={() => deltaChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '150px'}}><Line ref={deltaChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('delta_to_pole') }} options={{...commonOptions, scales:{...commonOptions.scales, y:{reverse:true, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div></div>
+                    <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>RPM</h5><button onClick={() => rpmChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '150px'}}><Line ref={rpmChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('rpm') }} options={telemetryOptions} plugins={[renderSectorPlugin()]} /></div></div>
+                    <div style={styles.chartContainer}><div style={styles.headerStyle}><h5 style={styles.chartTitle}>DELTA (SEC)</h5><button onClick={() => deltaChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div><div style={{height: '150px'}}><Line ref={deltaChartRef} data={{ labels: telemetryData.drivers[Object.keys(telemetryData.drivers)[0]].telemetry.distance.map(d => Math.round(d)), datasets: getDatasets('delta_to_pole') }} options={{...telemetryOptions, scales:{...telemetryOptions.scales, y:{reverse:true, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div></div>
                 </div>
               </div>
 
@@ -509,7 +569,43 @@ const styles = {
     headerStyle: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px' },
     chartTitle: { margin:0, color: COLORS.textDim, fontSize:'0.8em', letterSpacing:'1px', textTransform:'uppercase' },
     miniBtn: { padding: '4px 10px', background: 'rgba(255,255,255,0.05)', color: COLORS.textDim, border: `1px solid ${COLORS.border}`, borderRadius: '4px', cursor: 'pointer', fontSize: '0.7em' },
-    errorBanner: { padding: '15px', background: 'rgba(255, 0, 0, 0.1)', borderRadius: '8px', marginBottom: '20px', borderLeft: `4px solid ${COLORS.primary}`, color: '#ffaaaa' }
+    errorBanner: { padding: '15px', background: 'rgba(255, 0, 0, 0.1)', borderRadius: '8px', marginBottom: '20px', borderLeft: `4px solid ${COLORS.primary}`, color: '#ffaaaa' },
+    
+    // --- TRACK MAP STYLES ---
+    trackMapWidget: {
+        position: 'fixed',
+        zIndex: 1000,
+        background: 'rgba(20, 20, 30, 0.95)',
+        border: `1px solid ${COLORS.neon}`,
+        borderRadius: '16px',
+        boxShadow: '0 0 20px rgba(0,0,0,0.5)',
+        transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)', // Smooth animation
+        cursor: 'pointer',
+        overflow: 'hidden',
+        backdropFilter: 'blur(10px)'
+    },
+    trackMapCollapsed: {
+        top: '100px',
+        right: '20px',
+        width: '180px',
+        height: '140px',
+        opacity: 0.9
+    },
+    trackMapExpanded: {
+        top: '100px',
+        right: '20px',
+        width: '500px',
+        height: '500px',
+        opacity: 1
+    },
+    mapHoverOverlay: {
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(0,0,0,0.4)',
+        color: 'white', fontWeight: '800', fontSize: '1.2em', letterSpacing: '2px',
+        pointerEvents: 'none' // Click through to widget
+    }
 };
 
 export default Dashboard;
