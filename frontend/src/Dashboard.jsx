@@ -503,7 +503,7 @@ function Dashboard({ session, handleLogout }) {
           <div className="dashboard-grid-race">
                <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '100%'}}>
                    <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
-                   <div style={{ flex: 1, minHeight: '0', position: 'relative' }}>
+                   <div style={{ flex: 1, minHeight: '0', position: 'relative', overflow: 'hidden' }}>
                        <Scatter ref={distributionChartRef} options={distributionOptions} data={raceDistributionData} />
                    </div>
                    <div style={{marginTop:'15px', display:'flex', gap:'15px', justifyContent:'center', fontSize:'0.8em', color: COLORS.textDim}}>
