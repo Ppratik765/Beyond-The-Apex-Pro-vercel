@@ -499,17 +499,36 @@ function Dashboard({ session, handleLogout }) {
       {error && <div style={styles.errorBanner}>⚠️ {error}</div>}
 
       {/* RACE DISTRIBUTION VIEW */}
-      {isRaceOrPractice && raceLapData && !loading && (
-          <div className="dashboard-grid-race">
-               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '100%'}}>
-                   <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
-                   <div style={{ flex: 1, minHeight: '0', position: 'relative', overflow: 'hidden' }}>
-                       <Scatter ref={distributionChartRef} options={distributionOptions} data={raceDistributionData} />
-                   </div>
-                   <div style={{marginTop:'15px', display:'flex', gap:'15px', justifyContent:'center', fontSize:'0.8em', color: COLORS.textDim}}>
-                        {Object.entries(TYRE_COLORS).map(([compound, color]) => (compound !== 'UNKNOWN' && <div key={compound} style={{display:'flex', alignItems:'center'}}><div style={{width:'8px', height:'8px', borderRadius:'50%', backgroundColor:color, marginRight:'6px', boxShadow:`0 0 5px ${color}`}}></div>{compound}</div>))}
-                   </div>
-               </div>
+        {isRaceOrPractice && raceLapData && !loading && (
+            <div className="dashboard-grid-race">
+                 {/* Fix 1: Ensure the card has a fixed or constrained height */}
+                 <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '600px'}}> 
+                     <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
+                     
+                     {/* Fix 2: 'overflow: hidden' and 'minHeight: 0' are critical here. 
+                         This tells the browser to stop expanding the div when the chart resizes. */}
+                     <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+                         <Scatter 
+                            ref={distributionChartRef} 
+                            options={{
+                                ...distributionOptions,
+                                maintainAspectRatio: false, // Ensure this is false so it fills the container
+                            }} 
+                            data={raceDistributionData} 
+                         />
+                     </div>
+        
+                     <div style={{marginTop:'15px', display:'flex', gap:'15px', justifyContent:'center', fontSize:'0.8em', color: COLORS.textDim}}>
+                          {Object.entries(TYRE_COLORS).map(([compound, color]) => (
+                              compound !== 'UNKNOWN' && (
+                                <div key={compound} style={{display:'flex', alignItems:'center'}}>
+                                    <div style={{width:'8px', height:'8px', borderRadius:'50%', backgroundColor:color, marginRight:'6px', boxShadow:`0 0 5px ${color}`}}></div>
+                                    {compound}
+                                </div>
+                              )
+                          ))}
+                     </div>
+                 </div>
                
                <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
                     <div style={{...styles.card, border: `1px solid ${COLORS.neon}`, textAlign:'center', background: 'linear-gradient(180deg, rgba(0, 243, 255, 0.1), transparent)'}}>
