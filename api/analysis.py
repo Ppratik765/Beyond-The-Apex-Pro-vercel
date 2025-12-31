@@ -6,11 +6,12 @@ import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# RENDER & VERCEL CACHE FIX
-# If we are on Render (RENDER=true) or the directory isn't writable, use /tmp
-if os.environ.get('RENDER') or not os.access(BASE_DIR, os.W_OK):
-    CACHE_DIR = "/tmp/fastf1_cache"
+# Updated Cache Logic for Persistent Storage
+if os.environ.get('ZEABUR_SERVICE_ID') or os.path.exists("/app/api/cache"):
+    # Use the mounted volume path
+    CACHE_DIR = "/app/api/cache"
 else:
+    # Fallback for local dev
     CACHE_DIR = os.path.join(BASE_DIR, 'cache')
 
 if not os.path.exists(CACHE_DIR):
@@ -330,6 +331,7 @@ def generate_ai_insights(multi_data, k1, k2):
     unique_insights = list(set(insights))
 
     return unique_insights[:15] if unique_insights else ["No significant differences found."]
+
 
 
 
