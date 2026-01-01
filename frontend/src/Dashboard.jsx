@@ -574,7 +574,7 @@ function Dashboard({ session, handleLogout }) {
                                   ))}
                               </div>
                           </div>
-                          <div style={{...styles.card, height: '100%', display: 'flex', flexDirection: 'column'}}>
+                          <div style={{...styles.scrollableCard, height: '100%', display: 'flex', flexDirection: 'column'}}>
                               <h4 style={styles.cardTitle}>WCC (PREDICTED)</h4>
                               <div style={styles.standingsList}>
                                   {displayedStandings.wcc.map((t, i) => (
@@ -852,15 +852,28 @@ const styles = {
     // Predictor View
     predictorContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '20px', height: '100%', minHeight:0 },
     
-    // FIXED: Explicit scroll behaviour for the predictor columns
-    predGrid: { display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, paddingRight: '5px' }, 
+// FIXED: Added paddingBottom to prevent cut-off and ensure smooth scrolling
+    predGrid: { 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '10px', 
+        overflowY: 'auto', 
+        flex: 1, 
+        paddingRight: '5px', 
+        paddingBottom: '20px' // Fixes the bottom cut-off
+    }, 
     
-    predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px' },
+    predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px', flexShrink: 0 },
     predSelect: { background: 'transparent', border: 'none', color: 'white', flex: 1, fontFamily:'inherit', cursor:'pointer' },
-    colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px' },
+    colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px', flexShrink: 0 },
     
-    // FIXED: Live Standings scrolling
-    standingsList: { flex: 1, overflowY: 'auto', paddingRight: '5px' }, 
+    // FIXED: Added paddingBottom here too
+    standingsList: { 
+        flex: 1, 
+        overflowY: 'auto', 
+        paddingRight: '5px',
+        paddingBottom: '20px' // Fixes the bottom cut-off
+    },
     standingRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: `1px solid ${COLORS.grid}`, fontSize:'0.9em' }
 };
 
