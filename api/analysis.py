@@ -5,6 +5,7 @@ import os
 import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Updated Cache Logic for Persistent Storage
 if os.environ.get('ZEABUR_SERVICE_ID') or os.path.exists("/app/api/cache"):
     # Use the mounted volume path
@@ -15,40 +16,29 @@ else:
 
 if not os.path.exists(CACHE_DIR):
     os.makedirs(CACHE_DIR, exist_ok=True)
-
 fastf1.Cache.enable_cache(CACHE_DIR)
-
 # --- HELPER FUNCTIONS ---
 def get_available_years():
     current_year = datetime.date.today().year
-    return list(range(2018, current_year + 1))
+    return list(range(2021, current_year + 1))
 
 def get_races_for_year(year):
     try:
-        year = int(year)
         schedule = fastf1.get_event_schedule(year)
-        
-        # Filter out testing events
         schedule = schedule[schedule['EventFormat'] != 'testing']
         
-        # If looking at the current year, filter for completed races
         current_time = datetime.datetime.now(datetime.timezone.utc)
         current_year = datetime.date.today().year
         
         if year == current_year:
-            # We check the date of the last session (Session5Date)
-            # If Session5Date is in the past, the race weekend is likely over.
-            # We add a small buffer (e.g., 2 hours) to ensure data is likely being processed.
             schedule = schedule[
                 pd.to_datetime(schedule['Session5Date'], utc=True) < (current_time - datetime.timedelta(hours=2))
             ]
             
         races = schedule['EventName'].unique().tolist()
         return races
-    except Exception as e:
-        print(f"Error fetching races: {e}")
+    except:
         return []
-        
 
 def get_sessions_for_race(year, race_name):
     try:
@@ -62,14 +52,13 @@ def get_sessions_for_race(year, race_name):
         return sessions
     except:
         return []
-        
+
 # --- CORE ANALYSIS ---
 
 def get_race_lap_distribution(year, race, session_type, driver_list):
     session = fastf1.get_session(year, race, session_type)
     session.load(telemetry=False, weather=True, messages=False) 
 
-    # --- 1. Determine Session Winner/Leader ---
     winner_name = "N/A"
     winner_label = "WINNER"
     
@@ -93,11 +82,8 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
                 winner_label = "SPRINT WINNER"
             else:
                 winner_label = "RACE WINNER"
-    except Exception as e:
-        print(f"Winner Error: {e}")
-        pass
+    except: pass
 
-    # --- 2. Get Weather ---
     weather = {"air_temp": 0, "track_temp": 0, "humidity": 0, "rain": False}
     try:
         if hasattr(session, 'weather_data') and not session.weather_data.empty:
@@ -110,7 +96,6 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
             }
     except: pass
 
-    # --- 3. Process Laps & Stints ---
     lap_data = []
     stint_data = {}
     deg_insights = []
@@ -120,26 +105,21 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
             driver_laps = session.laps[session.laps['Driver'] == d].copy().reset_index()
             driver_stints = []
             current_stint = None
-            
-            # For degradation calc
             stint_laps_cache = []
 
             for idx, lap in driver_laps.iterrows():
-                # Scatter Plot Data
                 if not pd.isna(lap['LapTime']):
                     raw_compound = lap['Compound']
                     compound = str(raw_compound).upper() if raw_compound else 'UNKNOWN'
                     if compound in ['NAN', '', 'NONE']: compound = 'UNKNOWN'
                     
-                    lt_seconds = lap['LapTime'].total_seconds()
                     lap_data.append({
                         'driver': d,
                         'lap_number': int(lap['LapNumber']),
-                        'lap_time_seconds': lt_seconds,
+                        'lap_time_seconds': lap['LapTime'].total_seconds(),
                         'compound': compound
                     })
 
-                # Stint Logic
                 lap_num = int(lap['LapNumber'])
                 raw_compound = lap['Compound']
                 compound = str(raw_compound).upper() if raw_compound else 'UNKNOWN'
@@ -152,17 +132,13 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
                     current_stint = {'compound': compound, 'start': lap_num, 'end': lap_num}
                     stint_laps_cache = []
                 elif compound != current_stint['compound']:
-                    # Finish previous stint
                     driver_stints.append(current_stint)
-                    # Calculate Deg for previous stint
                     calculate_degradation(d, current_stint, stint_laps_cache, deg_insights)
-                    
                     current_stint = {'compound': compound, 'start': lap_num, 'end': lap_num}
                     stint_laps_cache = []
                 else:
                     current_stint['end'] = lap_num
                 
-                # Add valid lap times to cache for deg calc (ignore in/out laps ideally)
                 if not pd.isna(lap['LapTime']) and not is_pit_entry and not is_pit_out:
                     stint_laps_cache.append({'n': lap_num, 't': lap['LapTime'].total_seconds()})
 
@@ -190,37 +166,28 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
         "race_winner": winner_name, 
         "winner_label": winner_label, 
         "weather": weather,
-        "ai_insights": deg_insights[:5] # Limit to top 5 interesting ones
+        "ai_insights": deg_insights[:5]
     }
 
 def calculate_degradation(driver, stint, laps, insights_list):
-    if len(laps) < 4: return # Need at least 4 laps for a trend
-    
-    # Simple Linear Regression: LapTime = slope * LapNum + intercept
+    if len(laps) < 4: return
     x = np.array([l['n'] for l in laps])
     y = np.array([l['t'] for l in laps])
-    
-    # Filter outliers (Yellow flags etc) - basic z-score filter
     mean_y = np.mean(y)
     std_y = np.std(y)
-    mask = np.abs(y - mean_y) < 2 * std_y # Keep within 2 std devs
+    mask = np.abs(y - mean_y) < 2 * std_y
     if np.sum(mask) < 4: return
-    
     slope, _ = np.polyfit(x[mask], y[mask], 1)
-    
     compound = stint['compound']
     if compound == 'UNKNOWN': return
-
-    # Insight Logic
     if slope > 0.08:
         insights_list.append(f"{driver} {compound}s degraded heavily (+{slope:.2f}s/lap).")
     elif slope > 0.03:
         insights_list.append(f"{driver} {compound}s degraded by {slope:.2f}s per lap.")
     elif slope > -0.01 and slope < 0.01:
-        insights_list.append(f"{driver} {compound}s held steady (no deg).")
+        insights_list.append(f"{driver} {compound}s held steady.")
     elif slope < -0.02:
         insights_list.append(f"{driver} got faster on {compound}s (-{abs(slope):.2f}s/lap).")
-
 
 def get_telemetry_multi(year, race, session_type, driver_list, specific_laps=None):
     session = fastf1.get_session(year, race, session_type)
@@ -291,7 +258,6 @@ def get_telemetry_multi(year, race, session_type, driver_list, specific_laps=Non
         throttle = np.interp(x_new, tel['Distance'], tel['Throttle'])
         brake_raw = np.interp(x_new, tel['Distance'], tel['Brake'])
         
-        # Track Map Coordinates
         x_track = np.interp(x_new, tel['Distance'], tel['X']) if 'X' in tel else np.zeros_like(x_new)
         y_track = np.interp(x_new, tel['Distance'], tel['Y']) if 'Y' in tel else np.zeros_like(x_new)
 
@@ -385,60 +351,76 @@ def generate_ai_insights(multi_data, k1, k2):
                  speed_diff = np.mean(speed1[mask]) - np.mean(speed2[mask])
                  if abs(speed_diff) > 3: insights.append(f"Straight at {start}m: {gainer} faster by {int(abs(speed_diff))}km/h.")
     unique_insights = list(set(insights))
-
     return unique_insights[:15] if unique_insights else ["No significant differences found."]
-
 
 def get_season_standings(year):
     """
     Fetches WDC and WCC standings. 
-    If the season hasn't started (e.g., 2026), returns 0 points for known drivers/teams.
+    FALLBACK: If standings are empty (start of season), fetches Driver Info and returns 0 points.
     """
+    from fastf1.ergast import Ergast
+    ergast = Ergast()
+    
+    wdc = []
+    wcc = []
+    
+    # 1. Try fetching real standings
     try:
-        from fastf1.ergast import Ergast
-        ergast = Ergast()
-        
-        # Get Drivers
-        wdc = []
+        drivers = ergast.get_driver_standings(season=year).content[0]
+        for _, d in drivers.iterrows():
+            wdc.append({
+                "position": int(d['position']),
+                "points": float(d['points']),
+                "driver": d['driverId'],
+                "code": d['driverCode'],
+                "name": f"{d['givenName']} {d['familyName']}",
+                "team": d['constructorName']
+            })
+    except:
+        # FALLBACK: Fetch Driver Info for the season (0 points)
         try:
-            drivers = ergast.get_driver_standings(season=year).content[0]
-            for _, d in drivers.iterrows():
+            # We try to get driver info for the specific season
+            # Note: FastF1's get_driver_info returns a dataframe
+            drivers_fallback = ergast.get_driver_info(season=year).content[0]
+            for idx, d in drivers_fallback.iterrows():
                 wdc.append({
-                    "position": int(d['position']),
-                    "points": float(d['points']),
-                    "driver": d['driverId'], # e.g. 'verstappen'
-                    "code": d['driverCode'], # e.g. 'VER'
+                    "position": idx + 1, # Arbitrary order
+                    "points": 0,
+                    "driver": d['driverId'],
+                    "code": d['driverCode'],
                     "name": f"{d['givenName']} {d['familyName']}",
-                    "team": d['constructorName']
+                    "team": d['constructorId'].upper() # Approximation
                 })
-        except:
-            # Fallback for future seasons (like 2026) where no standings exist yet
-            # We try to get the driver list from the first round if available, else return empty
-            pass
+        except Exception as e:
+            print(f"Fallback WDC Error: {e}")
 
-        # Get Constructors
-        wcc = []
+    # 2. Try fetching real WCC
+    try:
+        teams = ergast.get_constructor_standings(season=year).content[0]
+        for _, t in teams.iterrows():
+            wcc.append({
+                "position": int(t['position']),
+                "points": float(t['points']),
+                "team": t['constructorName'],
+                "id": t['constructorId']
+            })
+    except:
+        # FALLBACK: Fetch Constructor Info (0 points)
         try:
-            teams = ergast.get_constructor_standings(season=year).content[0]
-            for _, t in teams.iterrows():
+            teams_fallback = ergast.get_constructor_info(season=year).content[0]
+            for idx, t in teams_fallback.iterrows():
                 wcc.append({
-                    "position": int(t['position']),
-                    "points": float(t['points']),
+                    "position": idx + 1,
+                    "points": 0,
                     "team": t['constructorName'],
                     "id": t['constructorId']
                 })
-        except:
-            pass
+        except Exception as e:
+            print(f"Fallback WCC Error: {e}")
             
-        return {"wdc": wdc, "wcc": wcc}
-    except Exception as e:
-        print(f"Standings Error: {e}")
-        return {"wdc": [], "wcc": []}
+    return {"wdc": wdc, "wcc": wcc}
 
 def get_season_schedule(year):
-    """
-    Returns the full schedule with 'upcoming' status for the predictor.
-    """
     try:
         schedule = fastf1.get_event_schedule(year)
         schedule = schedule[schedule['EventFormat'] != 'testing']
@@ -447,17 +429,15 @@ def get_season_schedule(year):
         races = []
         
         for _, event in schedule.iterrows():
-            # Check if event has happened (approx 2 hours after session 5)
-            # Safe check for missing dates
-            if pd.isna(event['Session5Date']):
-                is_done = False
-            else:
+            is_done = False
+            # Check if session 5 (Race) has a date
+            if hasattr(event, 'Session5Date') and not pd.isna(event['Session5Date']):
                 is_done = pd.to_datetime(event['Session5Date'], utc=True) < (current_time - datetime.timedelta(hours=2))
             
             races.append({
                 "round": int(event['RoundNumber']),
                 "name": event['EventName'],
-                "date": str(event['Session5Date']),
+                "date": str(event['Session5Date']) if not pd.isna(event['Session5Date']) else "TBD",
                 "is_sprint": "Sprint" in event['EventFormat'],
                 "is_done": is_done,
                 "location": event['Location']
