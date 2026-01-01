@@ -23,26 +23,9 @@ const COLORS = {
 };
 
 const DRIVER_COLORS = [
-  '#4363d8', // blue
-  '#e6194b', // red
-  '#f58231', // orange
-  '#ffe119', // yellow
-  '#911eb4', // purple
-  '#3cb44b', // green
-  '#46f0f0', // cyan
-  '#f032e6', // magenta
-  '#bcf60c', // lime
-  '#fabebe', // pink
-  '#008080', // teal
-  '#e6beff', // lavender
-  '#9a6324', // brown
-  '#fffac8', // beige
-  '#800000', // maroon
-  '#aaffc3', // mint
-  '#808000', // olive
-  '#ffd8b1', // peach
-  '#000075', // navy
-  '#808080'  // gray
+  '#4363d8', '#e6194b', '#f58231', '#ffe119', '#911eb4', 
+  '#3cb44b', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', 
+  '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000'
 ];
 
 const TYRE_COLORS = {
@@ -100,8 +83,12 @@ function Dashboard({ session, handleLogout }) {
   const [selectedLaps, setSelectedLaps] = useState([]); 
   const [hoverIndex, setHoverIndex] = useState(null); 
 
-  // Track Map State
+  // Track Map State (Animation Vars)
   const [isMapExpanded, setIsMapExpanded] = useState(false);
+  const [isClosing, setIsClosing] = useState(false); // NEW: Closing animation state
+  const [buttonCoords, setButtonCoords] = useState({ x: 0, y: 0, width: 0, height: 0 }); // NEW: Capture origin
+  const [animOrigin, setAnimOrigin] = useState("top right"); // NEW: Dynamic transform origin
+
   const [mapSize, setMapSize] = useState({ width: 500, height: 480 });
   const [mapPosition, setMapPosition] = useState({ x: 0, y: 0 });
   
@@ -114,6 +101,7 @@ function Dashboard({ session, handleLogout }) {
   const [currentPredictRound, setCurrentPredictRound] = useState(0);
 
   const widgetRef = useRef(null);
+  const mapBtnRef = useRef(null); // NEW: Ref for button
   const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
 
@@ -131,7 +119,7 @@ function Dashboard({ session, handleLogout }) {
   useEffect(() => {
       setTelemetryData(null); setRaceLapData(null); setStintData(null); 
       setRaceWinner(null); setRaceWeather(null); setSelectedLaps([]); 
-      setRaceInsights([]); setHoverIndex(null); setIsMapExpanded(false);
+      setRaceInsights([]); setHoverIndex(null); setIsMapExpanded(false); setIsClosing(false);
   }, [inputs.race, inputs.session]);
 
   useEffect(() => {
@@ -434,11 +422,33 @@ function Dashboard({ session, handleLogout }) {
   );
 
   const toggleMapExpand = () => {
-      if (!isMapExpanded) {
-          const defaultX = window.innerWidth - 550;
-          setMapPosition({ x: defaultX, y: 120 });
+      if (isMapExpanded) {
+          // CLOSING LOGIC
+          const originX = buttonCoords.x - mapPosition.x + (buttonCoords.width / 2);
+          const originY = buttonCoords.y - mapPosition.y + (buttonCoords.height / 2);
+          setAnimOrigin(`${originX}px ${originY}px`);
+
+          setIsClosing(true);
+          setTimeout(() => {
+              setIsMapExpanded(false);
+              setIsClosing(false);
+          }, 300);
+      } else {
+          // OPENING LOGIC
+          if (mapBtnRef.current) {
+              const rect = mapBtnRef.current.getBoundingClientRect();
+              setButtonCoords(rect);
+              
+              const defaultX = window.innerWidth - 550;
+              const defaultY = 120;
+              const originX = rect.left - defaultX + (rect.width / 2);
+              const originY = rect.top - defaultY + (rect.height / 2);
+              
+              setAnimOrigin(`${originX}px ${originY}px`);
+              setMapPosition({ x: defaultX, y: defaultY });
+          }
+          setIsMapExpanded(true);
       }
-      setIsMapExpanded(!isMapExpanded);
   };
 
   const handleMouseDown = (e) => {
@@ -488,7 +498,7 @@ function Dashboard({ session, handleLogout }) {
                   {predictionMode && currentRace ? (
                       <div style={styles.predictorContainer}>
                           {/* PREDICTOR WIDGET (Left Side - Race & Sprint) */}
-                          <div style={{...styles.scrollableCard, gridColumn: 'span 2', display: 'flex', flexDirection: 'column', height: '100%'}}>
+                          <div style={{...styles.scrollableCard, gridColumn: 'span 2', display: 'flex', flexDirection: 'column', maxHeight: '600px'}}>
                               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px', flexShrink: 0}}>
                                   <button onClick={prevRound} style={styles.miniBtn}>◀</button>
                                   <div style={{textAlign:'center'}}>
@@ -518,9 +528,9 @@ function Dashboard({ session, handleLogout }) {
                                                         value={currentVal}
                                                         onChange={(e) => updatePrediction('race', pos, e.target.value)}
                                                     >
-                                                        <option value=""style={{backgroundColor: '#2b2b3d', color: 'white'}}>Select Driver</option>
-                                                        {currentVal && <option value={currentVal}style={{backgroundColor: '#2b2b3d', color: 'white'}}>{currentVal}</option>}
-                                                        {available.map(d => <option key={d.code} value={d.code}style={{backgroundColor: '#2b2b3d', color: 'white'}}>{d.code}</option>)}
+                                                        <option value="" style={{backgroundColor: '#2b2b3d', color: 'white'}}>Select Driver</option>
+                                                        {currentVal && <option value={currentVal} style={{backgroundColor: '#2b2b3d', color: 'white'}}>{currentVal}</option>}
+                                                        {available.map(d => <option key={d.code} value={d.code} style={{backgroundColor: '#2b2b3d', color: 'white'}}>{d.code}</option>)}
                                                     </select>
                                                     <span style={{color: COLORS.neon, fontSize:'0.8em'}}>+{POINTS_SYSTEM[pos]}pts</span>
                                                 </div>
@@ -547,9 +557,9 @@ function Dashboard({ session, handleLogout }) {
                                                             value={currentVal}
                                                             onChange={(e) => updatePrediction('sprint', pos, e.target.value)}
                                                         >
-                                                            <option value=""style={{backgroundColor: '#2b2b3d', color: 'white'}}>Select Driver</option>
-                                                            {currentVal && <option value={currentVal}style={{backgroundColor: '#2b2b3d', color: 'white'}}>{currentVal}</option>}
-                                                            {available.map(d => <option key={d.code} value={d.code}style={{backgroundColor: '#2b2b3d', color: 'white'}}>{d.code}</option>)}
+                                                            <option value="" style={{backgroundColor: '#2b2b3d', color: 'white'}}>Select Driver</option>
+                                                            {currentVal && <option value={currentVal} style={{backgroundColor: '#2b2b3d', color: 'white'}}>{currentVal}</option>}
+                                                            {available.map(d => <option key={d.code} value={d.code} style={{backgroundColor: '#2b2b3d', color: 'white'}}>{d.code}</option>)}
                                                         </select>
                                                         <span style={{color: COLORS.neon, fontSize:'0.8em'}}>+{SPRINT_POINTS[pos]}pts</span>
                                                     </div>
@@ -562,7 +572,7 @@ function Dashboard({ session, handleLogout }) {
                           </div>
                           
                           {/* LIVE STANDINGS WIDGETS (Right Side) */}
-                          <div style={{...styles.scrollableCard, height: '100%', display: 'flex', flexDirection: 'column'}}>
+                          <div style={{...styles.scrollableCard, maxHeight: '600px', display: 'flex', flexDirection: 'column'}}>
                               <h4 style={styles.cardTitle}>WDC (PREDICTED)</h4>
                               <div style={styles.standingsList}>
                                   {displayedStandings.wdc.map((d, i) => (
@@ -574,7 +584,7 @@ function Dashboard({ session, handleLogout }) {
                                   ))}
                               </div>
                           </div>
-                          <div style={{...styles.scrollableCard, height: '100%', display: 'flex', flexDirection: 'column'}}>
+                          <div style={{...styles.scrollableCard, maxHeight: '600px', display: 'flex', flexDirection: 'column'}}>
                               <h4 style={styles.cardTitle}>WCC (PREDICTED)</h4>
                               <div style={styles.standingsList}>
                                   {displayedStandings.wcc.map((t, i) => (
@@ -588,7 +598,6 @@ function Dashboard({ session, handleLogout }) {
                           </div>
                       </div>
                   ) : (
-                      // ... (Static Standings Code - No Changes needed) ...
                       <div style={styles.standingsContainer}>
                           <div style={styles.scrollableCard}>
                               <h3 style={styles.cardTitle}>WORLD DRIVERS' CHAMPIONSHIP</h3>
@@ -641,8 +650,8 @@ function Dashboard({ session, handleLogout }) {
       )}
       
       {/* TRACK MAP WIDGET */}
-      {isMapExpanded && telemetryData && (
-          <div ref={widgetRef} style={{ ...styles.floatingWidget, left: mapPosition.x, top: mapPosition.y, width: `${mapSize.width}px`, height: `${mapSize.height}px`, resize: 'both', overflow: 'hidden' }}>
+      {(isMapExpanded || isClosing) && telemetryData && (
+          <div ref={widgetRef} style={{ ...styles.floatingWidget, left: mapPosition.x, top: mapPosition.y, width: `${mapSize.width}px`, height: `${mapSize.height}px`, resize: 'both', overflow: 'hidden', transformOrigin: animOrigin, animation: isClosing ? 'morphOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'morphIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}>
               <div style={styles.floatingHeader} onMouseDown={handleMouseDown} title="Drag Header to Move | Drag Bottom-Right to Resize">
                   <span>📍 TRACK MAP</span>
                   <button onClick={toggleMapExpand} style={styles.closeBtn}>✕</button>
@@ -666,7 +675,7 @@ function Dashboard({ session, handleLogout }) {
              </div>
 
              {telemetryData && !isMapExpanded && (
-                 <div style={{position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor:'pointer'}} onClick={toggleMapExpand} className="map-trigger">
+                 <div ref={mapBtnRef} style={{position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor:'pointer'}} onClick={toggleMapExpand} className="map-trigger">
                      <div style={styles.tooltipAbove}>CLICK TO EXPAND</div>
                      <div style={styles.mapButton}>
                         <Scatter data={getTrackMapData()} options={{...trackMapOptions, animation: false}} />
@@ -700,7 +709,7 @@ function Dashboard({ session, handleLogout }) {
 
       {isRaceOrPractice && raceLapData && !loading && (
           <div className="dashboard-grid-race">
-               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '810px'}}>
+               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '820px'}}>
                    <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
                    <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
                        <Scatter ref={distributionChartRef} options={distributionOptions} data={raceDistributionData} />
@@ -852,35 +861,32 @@ const styles = {
     // Predictor View
     predictorContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '20px', height: '100%', minHeight:0 },
     
-// FIXED: Added paddingBottom to prevent cut-off and ensure smooth scrolling
-    predGrid: { 
-        display: 'flex', 
-        flexDirection: 'column', 
-        gap: '10px', 
-        overflowY: 'auto', 
-        flex: 1, 
-        paddingRight: '5px', 
-        paddingBottom: '20px' // Fixes the bottom cut-off
-    }, 
+    // FIXED: Explicit scroll behavior for the predictor columns
+    predGrid: { display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, paddingRight: '5px', paddingBottom: '20px' }, 
     
-    predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px', flexShrink: 0 },
+    predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px' },
     predSelect: { background: 'transparent', border: 'none', color: 'white', flex: 1, fontFamily:'inherit', cursor:'pointer' },
-    colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px', flexShrink: 0 },
+    colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px' },
     
-    // FIXED: Added paddingBottom here too
-    standingsList: { 
-        flex: 1, 
-        overflowY: 'auto', 
-        paddingRight: '5px',
-        paddingBottom: '20px' // Fixes the bottom cut-off
-    },
+    // FIXED: Live Standings scrolling
+    standingsList: { flex: 1, overflowY: 'auto', paddingRight: '5px', paddingBottom: '20px' }, 
     standingRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: `1px solid ${COLORS.grid}`, fontSize:'0.9em' }
 };
 
 const styleSheet = document.createElement("style");
 styleSheet.innerText = `
   .map-trigger:hover .tooltip-above { opacity: 1 !important; }
-  @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  
+  /* Morphing Animations */
+  @keyframes morphIn {
+      from { transform: scale(0); opacity: 0; border-radius: 50%; }
+      to { transform: scale(1); opacity: 1; border-radius: 12px; }
+  }
+  @keyframes morphOut {
+      from { transform: scale(1); opacity: 1; border-radius: 12px; }
+      to { transform: scale(0); opacity: 0; border-radius: 50%; }
+  }
+  
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
