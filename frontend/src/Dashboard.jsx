@@ -23,10 +23,28 @@ const COLORS = {
 };
 
 const DRIVER_COLORS = [
-  '#4363d8', '#e6194b', '#f58231', '#ffe119', '#911eb4', 
-  '#3cb44b', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', 
-  '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000'
+  '#4363d8', // blue
+  '#e6194b', // red
+  '#f58231', // orange
+  '#ffe119', // yellow
+  '#911eb4', // purple
+  '#3cb44b', // green
+  '#46f0f0', // cyan
+  '#f032e6', // magenta
+  '#bcf60c', // lime
+  '#fabebe', // pink
+  '#008080', // teal
+  '#e6beff', // lavender
+  '#9a6324', // brown
+  '#fffac8', // beige
+  '#800000', // maroon
+  '#aaffc3', // mint
+  '#808000', // olive
+  '#ffd8b1', // peach
+  '#000075', // navy
+  '#808080'  // gray
 ];
+
 
 const TYRE_COLORS = {
     'SOFT': '#ff3b30', 'MEDIUM': '#ffcc00', 'HARD': '#ffffff',
@@ -215,24 +233,39 @@ function Dashboard({ session, handleLogout }) {
     return { datasets: [{ label: 'Laps', data: plotData, pointStyle: 'circle', pointBackgroundColor: pointColors, pointBorderColor: borderColors, pointBorderWidth: borderCmds, pointRadius: radiuses }] };
   }, [raceLapData, selectedLaps, activeDrivers]);
 
-  const handleDistributionClick = (event, elements) => {
-      if(elements.length === 0 || !raceLapData) return;
-      const dataIndex = elements[0].index;
-      const rawPointData = raceDistributionData.datasets[0].data[dataIndex];
-      if(rawPointData && rawPointData.rawLapData) {
-          const { driver, lap_number } = rawPointData.rawLapData;
-          let newSelection = [...selectedLaps];
-          const exists = newSelection.find(s => s.driver === driver && s.lap === lap_number);
-          
-          // Multi-lap selection logic restored:
-          if(exists) newSelection = newSelection.filter(s => !(s.driver === driver && s.lap === lap_number));
-          else newSelection.push({driver, lap: lap_number});
-          
-          setSelectedLaps(newSelection);
-          if(newSelection.length > 0) fetchDetailedTelemetry(newSelection);
-          else setTelemetryData(null);
-      }
-  };
+const handleDistributionClick = (event, elements) => {
+    if (elements.length === 0 || !raceLapData) return;
+    
+    const dataIndex = elements[0].index;
+    const rawPointData = raceDistributionData.datasets[0].data[dataIndex];
+    
+    if (rawPointData && rawPointData.rawLapData) {
+        const { driver, lap_number } = rawPointData.rawLapData;
+        
+        // Use functional state update to ensure we have the most recent selection
+        setSelectedLaps(prevSelected => {
+            const exists = prevSelected.find(s => s.driver === driver && s.lap === lap_number);
+            let newSelection;
+            
+            if (exists) {
+                // If already selected, remove it (deselect)
+                newSelection = prevSelected.filter(s => !(s.driver === driver && s.lap === lap_number));
+            } else {
+                // Add new lap to the existing selection
+                newSelection = [...prevSelected, { driver, lap: lap_number }];
+            }
+            
+            // Trigger the fetch with the full updated selection
+            if (newSelection.length > 0) {
+                fetchDetailedTelemetry(newSelection);
+            } else {
+                setTelemetryData(null);
+            }
+            
+            return newSelection;
+        });
+    }
+};
 
   // --- STABLE CHART OPTIONS ---
 
