@@ -274,13 +274,15 @@ function Dashboard({ session, handleLogout }) {
                   color: 'white', font: { size: 14, weight: 'bold', family: '"Titillium Web"' }, 
                   stepSize: 1,
                   callback: (val) => activeDrivers[Math.round(val)] || '', 
-                  autoSkip: false
+                  autoSkip: false, 
+                  align: 'right',
+                  labelOffset: 55
               }, 
               grid: { display: false }, 
               min: -0.5, max: activeDrivers.length - 0.5 
           },
           y: { 
-              ticks: { color: '#888', callback: (val) => formatTime(val), stepSize: 0.1 }, 
+              ticks: { color: '#888', callback: (val) => formatTime(val), stepSize: 0.05 }, 
               grid: { color: COLORS.grid }, 
               title: { display: true, text: 'LAP TIME (m:ss.ms)', color: '#666', font:{weight:'bold'} } 
           }
@@ -502,7 +504,7 @@ function Dashboard({ session, handleLogout }) {
         {isRaceOrPractice && raceLapData && !loading && (
             <div className="dashboard-grid-race">
                  {/* Fix 1: Ensure the card has a fixed or constrained height */}
-                 <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '600px'}}> 
+                 <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '900px'}}> 
                      <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
                      
                      {/* Fix 2: 'overflow: hidden' and 'minHeight: 0' are critical here. 
