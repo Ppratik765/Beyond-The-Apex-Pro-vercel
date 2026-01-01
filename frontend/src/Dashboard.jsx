@@ -172,7 +172,7 @@ function Dashboard({ session, handleLogout }) {
     [deltaChartRef, speedChartRef, throttleChartRef, brakeChartRef, rpmChartRef, longGChartRef].forEach(ref => { if (ref.current) ref.current.resetZoom(); });
   };
 
-  // --- STABLE CHART DATA PREPARATION (Fixes Zoom Bug) ---
+  // --- STABLE CHART DATA PREPARATION ---
 
   const getDatasets = (metric) => {
     if (!telemetryData) return [];
@@ -223,8 +223,11 @@ function Dashboard({ session, handleLogout }) {
           const { driver, lap_number } = rawPointData.rawLapData;
           let newSelection = [...selectedLaps];
           const exists = newSelection.find(s => s.driver === driver && s.lap === lap_number);
+          
+          // Multi-lap selection logic restored:
           if(exists) newSelection = newSelection.filter(s => !(s.driver === driver && s.lap === lap_number));
           else newSelection.push({driver, lap: lap_number});
+          
           setSelectedLaps(newSelection);
           if(newSelection.length > 0) fetchDetailedTelemetry(newSelection);
           else setTelemetryData(null);
@@ -234,9 +237,7 @@ function Dashboard({ session, handleLogout }) {
   // --- STABLE CHART OPTIONS ---
 
   const telemetryOptions = useMemo(() => ({
-    animation: false, 
-    maintainAspectRatio: false, 
-    responsive: true,
+    animation: false, maintainAspectRatio: false, responsive: true,
     interaction: { mode: 'index', intersect: false },
     onHover: (e, elements) => {
         if (elements && elements.length > 0) setHoverIndex(elements[0].index);
@@ -245,10 +246,7 @@ function Dashboard({ session, handleLogout }) {
     plugins: { 
         legend: { display: false }, 
         zoom: { 
-            zoom: { 
-                drag: { enabled: true, backgroundColor: 'rgba(0, 243, 255, 0.2)', borderColor: COLORS.neon, borderWidth: 1 }, 
-                mode: 'x' 
-            }, 
+            zoom: { drag: { enabled: true, backgroundColor: 'rgba(0, 243, 255, 0.2)', borderColor: COLORS.neon, borderWidth: 1 }, mode: 'x' }, 
             pan: { enabled: true, mode: 'x', modifierKey: 'shift' } 
         } 
     },
@@ -257,6 +255,15 @@ function Dashboard({ session, handleLogout }) {
         y: { ticks: { color: '#888', font: {family: '"Titillium Web"'} }, grid: { color: COLORS.grid } } 
     }
   }), []);
+
+  // Fixed specific options for percentage charts to allow zooming
+  const pctTelemetryOptions = useMemo(() => ({
+      ...telemetryOptions,
+      scales: {
+          ...telemetryOptions.scales,
+          y: { min: 0, max: 105, ticks: { color: '#888' }, grid: { color: COLORS.grid } }
+      }
+  }), [telemetryOptions]);
 
   const distributionOptions = useMemo(() => ({
       animation: false, maintainAspectRatio: false, responsive: true, onClick: handleDistributionClick,
@@ -269,12 +276,10 @@ function Dashboard({ session, handleLogout }) {
       },
       scales: {
           x: { 
-              type: 'linear', offset: false, 
-              title: { display: true, text: 'DRIVERS', color: '#666', font:{weight:'bold'} },
+              type: 'linear', offset: false, title: { display: true, text: 'DRIVERS', color: '#666', font:{weight:'bold'} },
               ticks: { 
                   color: 'white', font: { size: 14, weight: 'bold', family: '"Titillium Web"' }, stepSize: 1,
-                  callback: (val) => activeDrivers[Math.round(val)] || '', 
-                  autoSkip: false
+                  callback: (val) => activeDrivers[Math.round(val)] || '', autoSkip: false
               }, 
               grid: { display: false }, min: -0.5, max: activeDrivers.length - 0.5 
           },
@@ -427,7 +432,7 @@ function Dashboard({ session, handleLogout }) {
 
       {isRaceOrPractice && raceLapData && !loading && (
           <div className="dashboard-grid-race">
-               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '875px'}}>
+               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '600px'}}>
                    <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
                    <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
                        <Scatter ref={distributionChartRef} options={distributionOptions} data={raceDistributionData} />
@@ -470,6 +475,13 @@ function Dashboard({ session, handleLogout }) {
       {telemetryData && !loading && Object.keys(telemetryData.drivers).length > 0 && (
           <div className="dashboard-grid-telemetry">
               <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
+                {/* POLE POSITION BAR RESTORED */}
+                {isQualiSession && telemetryData.pole_info && (
+                    <div style={{background: 'rgba(0, 243, 255, 0.05)', padding:'15px', borderRadius:'8px', border:`1px solid ${COLORS.neon}`, color: COLORS.neon, display:'flex', justifyContent:'center', alignItems:'center', textShadow: `0 0 10px rgba(0,243,255,0.3)`, marginBottom: '10px'}}>
+                        🏆 <b>POLE POSITION:</b> &nbsp; {telemetryData.pole_info.driver} &nbsp; ({formatTime(telemetryData.pole_info.time)})
+                    </div>
+                )}
+
                 <div style={styles.chartContainer}>
                     <div style={styles.headerStyle}><h5 style={styles.chartTitle}>DELTA TO {isRaceOrPractice ? 'FASTEST' : 'POLE'} (SEC)</h5><button onClick={() => deltaChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div>
                     <div style={{height: '200px'}}><Line ref={deltaChartRef} data={deltaData} options={{...telemetryOptions, scales:{...telemetryOptions.scales, y:{reverse:true, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div>
@@ -480,11 +492,11 @@ function Dashboard({ session, handleLogout }) {
                 </div>
                 <div style={styles.chartContainer}>
                     <div style={styles.headerStyle}><h5 style={styles.chartTitle}>THROTTLE (%)</h5><button onClick={() => throttleChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div>
-                    <div style={{height: '200px'}}><Line ref={throttleChartRef} data={throttleData} options={{...telemetryOptions, scales: {y: {min:0, max:105, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div>
+                    <div style={{height: '200px'}}><Line ref={throttleChartRef} data={throttleData} options={pctTelemetryOptions} plugins={[renderSectorPlugin()]} /></div>
                 </div>
                 <div style={styles.chartContainer}>
                     <div style={styles.headerStyle}><h5 style={styles.chartTitle}>BRAKE PRESSURE (%)</h5><button onClick={() => brakeChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div>
-                    <div style={{height: '200px'}}><Line ref={brakeChartRef} data={brakeData} options={{...telemetryOptions, scales: {y: {min:0, max:105, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div>
+                    <div style={{height: '200px'}}><Line ref={brakeChartRef} data={brakeData} options={pctTelemetryOptions} plugins={[renderSectorPlugin()]} /></div>
                 </div>
                 <div className="charts-split">
                     <div style={styles.chartContainer}>
