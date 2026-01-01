@@ -555,7 +555,7 @@ function Dashboard({ session, handleLogout }) {
                       </div>
                   ) : (
                       <div style={styles.standingsContainer}>
-                          <div style={styles.card}>
+                          <div style={styles.scrollableCard}>
                               <h3 style={styles.cardTitle}>WORLD DRIVERS' CHAMPIONSHIP</h3>
                               <table style={styles.table}>
                                   <thead>
@@ -578,7 +578,7 @@ function Dashboard({ session, handleLogout }) {
                                   </tbody>
                               </table>
                           </div>
-                          <div style={styles.card}>
+                          <div style={styles.scrollableCard}>
                               <h3 style={styles.cardTitle}>WORLD CONSTRUCTORS' CHAMPIONSHIP</h3>
                               <table style={styles.table}>
                                   <thead>
@@ -804,18 +804,42 @@ const styles = {
     floatingHeader: { padding: '12px 15px', background: 'rgba(255,255,255,0.05)', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'move', color: COLORS.neon, fontWeight: 'bold', fontSize: '0.9em', letterSpacing: '1px' },
     closeBtn: { background: 'transparent', border:'none', color:'#888', fontSize:'1.2em', cursor:'pointer', padding:'0 5px' },
     
-    // --- CHAMPIONSHIP MODAL STYLES ---
-    modalOverlay: { position: 'fixed', top:0, left:0, width:'100vw', height:'100vh', background: 'rgba(0,0,0,0.8)', backdropFilter:'blur(8px)', zIndex: 10000, display:'flex', justifyContent:'center', alignItems:'center', animation: 'fadeIn 0.2s ease' },
-    modalContent: { width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', border: `1px solid ${COLORS.border}`, padding: '30px', overflowY: 'auto', display:'flex', flexDirection:'column' },
-    modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'20px' },
-    standingsContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', height: '100%', overflow:'hidden' },
+// --- CHAMPIONSHIP MODAL STYLES (UPDATED FOR SCROLLING) ---
+    modalOverlay: { 
+        position: 'fixed', top:0, left:0, width:'100vw', height:'100vh', 
+        background: 'rgba(0,0,0,0.8)', backdropFilter:'blur(8px)', zIndex: 10000, 
+        display:'flex', justifyContent:'center', alignItems:'center', animation: 'fadeIn 0.2s ease' 
+    },
+    modalContent: { 
+        width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', 
+        border: `1px solid ${COLORS.border}`, padding: '30px', 
+        display:'flex', flexDirection:'column' 
+    },
+    modalHeader: { 
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+        marginBottom: '20px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'20px',
+        flexShrink: 0 
+    },
+    // SCROLLABLE CONTAINER
+    standingsContainer: { 
+        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', 
+        height: '100%', overflow: 'hidden', minHeight: 0 
+    },
+    // Tables need to scroll independently
+    scrollableCard: {
+        background: COLORS.card, padding: '20px', borderRadius: '16px', 
+        border: `1px solid ${COLORS.border}`, overflowY: 'auto',
+        maxHeight: '100%' // Fills the grid cell
+    },
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px', fontSize:'0.9em' },
-    predictorContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '20px', height: '100%' },
+    
+    // Predictor Styles
+    predictorContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '20px', height: '100%', minHeight:0 },
     predGrid: { display: 'grid', gridTemplateColumns: '1fr', gap: '10px' },
     predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px' },
     predSelect: { background: 'transparent', border: 'none', color: 'white', flex: 1, fontFamily:'inherit', cursor:'pointer' },
     colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px' },
-    standingsList: { maxHeight: '600px', overflowY: 'auto' },
+    standingsList: { maxHeight: '100%', overflowY: 'auto' }, // Allow scrolling for lists
     standingRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: `1px solid ${COLORS.grid}`, fontSize:'0.9em' }
 };
 
