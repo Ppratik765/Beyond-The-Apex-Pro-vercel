@@ -8,7 +8,9 @@ from analysis import (
     get_available_years, 
     get_races_for_year, 
     get_sessions_for_race,
-    get_race_lap_distribution
+    get_race_lap_distribution,
+    get_season_standings,
+    get_season_schedule
 )
 
 app = FastAPI()
@@ -72,4 +74,5 @@ def analyze_drivers(year: int, race: str, session: str, drivers: str, specific_l
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
 
