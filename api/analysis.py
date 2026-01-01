@@ -358,6 +358,7 @@ def get_season_standings(year):
     """
     Fetches WDC and WCC standings. 
     Handles missing constructor names and future seasons gracefully.
+    Fallback: If selected year has no data (e.g. 2026), uses previous year's drivers/teams with 0 points.
     """
     from fastf1.ergast import Ergast
     ergast = Ergast()
@@ -365,25 +366,21 @@ def get_season_standings(year):
     wdc = []
     wcc = []
     
-    # 1. Try fetching real WDC standings
+    # --- DRIVERS (WDC) ---
     try:
+        # 1. Try fetching real standings for requested year
         response = ergast.get_driver_standings(season=year)
         if hasattr(response, 'content') and len(response.content) > 0:
             drivers = response.content[0]
             for _, d in drivers.iterrows():
-                # ROBUST TEAM EXTRACTION:
-                # FastF1/Ergast can return constructors in various formats (e.g. nested list)
                 team_name = "N/A"
-                if 'constructorNames' in d: # Often a list of strings
+                if 'constructorNames' in d: # List of strings
                     try:
                         c_names = d['constructorNames']
-                        if isinstance(c_names, list) and len(c_names) > 0:
-                            team_name = c_names[-1] # Use most recent team
-                        elif isinstance(c_names, str):
-                            team_name = c_names
+                        if isinstance(c_names, list) and len(c_names) > 0: team_name = c_names[-1]
+                        elif isinstance(c_names, str): team_name = c_names
                     except: pass
-                elif 'constructorName' in d:
-                    team_name = d['constructorName']
+                elif 'constructorName' in d: team_name = d['constructorName']
                 
                 wdc.append({
                     "position": int(d['position']),
@@ -393,12 +390,30 @@ def get_season_standings(year):
                     "name": f"{d['givenName']} {d['familyName']}",
                     "team": team_name
                 })
-    except Exception as e:
-        print(f"Main WDC Error: {e}")
-        # Fallback likely won't work if API is down, but we catch gracefully
-        pass
+        else:
+            raise Exception("No standings data")
+    except:
+        # 2. Fallback: Fetch Driver Info (0 points) for requested year OR previous year
+        try:
+            try:
+                drivers_fallback = ergast.get_driver_info(season=year).content[0]
+            except:
+                # If 2026 fails, try 2025
+                drivers_fallback = ergast.get_driver_info(season=year-1).content[0]
 
-    # 2. Try fetching real WCC standings
+            for idx, d in drivers_fallback.iterrows():
+                wdc.append({
+                    "position": idx + 1,
+                    "points": 0,
+                    "driver": d['driverId'],
+                    "code": d['driverCode'],
+                    "name": f"{d['givenName']} {d['familyName']}",
+                    "team": d.get('constructorId', 'N/A').upper()
+                })
+        except Exception as e:
+            print(f"WDC Fallback Error: {e}")
+
+    # --- TEAMS (WCC) ---
     try:
         response = ergast.get_constructor_standings(season=year)
         if hasattr(response, 'content') and len(response.content) > 0:
@@ -410,9 +425,24 @@ def get_season_standings(year):
                     "team": t['constructorName'],
                     "id": t['constructorId']
                 })
-    except Exception as e:
-        print(f"Main WCC Error: {e}")
-        pass
+        else:
+            raise Exception("No standings data")
+    except:
+        try:
+            try:
+                teams_fallback = ergast.get_constructor_info(season=year).content[0]
+            except:
+                teams_fallback = ergast.get_constructor_info(season=year-1).content[0]
+                
+            for idx, t in teams_fallback.iterrows():
+                wcc.append({
+                    "position": idx + 1,
+                    "points": 0,
+                    "team": t['constructorName'],
+                    "id": t['constructorId']
+                })
+        except Exception as e:
+            print(f"WCC Fallback Error: {e}")
             
     return {"wdc": wdc, "wcc": wcc}
 
@@ -450,3 +480,4 @@ def get_season_schedule(year):
     except Exception as e:
         print(f"Schedule Error: {e}")
         return []
+
