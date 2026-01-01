@@ -9,21 +9,18 @@ from analysis import (
     get_races_for_year, 
     get_sessions_for_race,
     get_race_lap_distribution,
-    get_season_standings,
-    get_season_schedule
+    get_season_standings,  # NEW IMPORT
+    get_season_schedule    # NEW IMPORT
 )
 
 app = FastAPI()
 
-# Allow CORS for your frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, you can restrict this to your frontend URL
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# --- ROUTES (Standard Paths) ---
 
 @app.get("/years")
 def get_years(): return {"years": get_available_years()}
@@ -43,16 +40,6 @@ def get_race_laps_endpoint(year: int, race: str, session: str, drivers: str):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-@app.get("/standings")
-def season_standings(year: int):
-    data = analysis.get_season_standings(year)
-    return {"status": "success", "data": data}
-
-@app.get("/schedule")
-def season_schedule(year: int):
-    data = analysis.get_season_schedule(year)
-    return {"status": "success", "data": data}
-
 @app.get("/analyze")
 def analyze_drivers(year: int, race: str, session: str, drivers: str, specific_laps: str = Query(None)):
     driver_list = [d.strip().upper() for d in drivers.split(',')]
@@ -71,8 +58,17 @@ def analyze_drivers(year: int, race: str, session: str, drivers: str, specific_l
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+# --- NEW ROUTES FOR CHAMPIONSHIP ---
+@app.get("/standings")
+def season_standings(year: int):
+    data = get_season_standings(year)
+    return {"status": "success", "data": data}
+
+@app.get("/schedule")
+def season_schedule(year: int):
+    data = get_season_schedule(year)
+    return {"status": "success", "data": data}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
