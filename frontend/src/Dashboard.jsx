@@ -9,17 +9,17 @@ Chart.register(zoomPlugin);
 
 // --- VISUAL CONSTANTS ---
 const COLORS = {
-    primary: 'var(--f1-red)',      // Red
-    neon: 'var(--neon-blue)',      // Cyan
-    bg: 'var(--dark-bg)',          // Dark Blue/Black
-    card: 'var(--card-bg)',        // Card Background
-    text: 'var(--text-primary)',   // White
-    textDim: 'var(--text-secondary)', // Gray
+    primary: 'var(--f1-red)',      
+    neon: 'var(--neon-blue)',      
+    bg: 'var(--dark-bg)',          
+    card: 'var(--card-bg)',        
+    text: 'var(--text-primary)',   
+    textDim: 'var(--text-secondary)', 
     border: 'rgba(255, 255, 255, 0.1)',
     grid: 'rgba(255, 255, 255, 0.05)',
-    s1: '#ffe119', // Yellow
-    s2: '#00f3ff', // Cyan
-    s3: '#ff004d'  // Red
+    s1: '#ffe119', 
+    s2: '#00f3ff', 
+    s3: '#ff004d'  
 };
 
 const DRIVER_COLORS = [
@@ -107,7 +107,7 @@ function Dashboard({ session, handleLogout }) {
           setYears(res.data.years);
           if(res.data.years.length > 0) setInputs(prev => ({...prev, year: res.data.years[res.data.years.length-1]}));
       });
-  }, []);
+  }, [API_BASE]);
 
   useEffect(() => {
       if(inputs.year) {
@@ -116,7 +116,7 @@ function Dashboard({ session, handleLogout }) {
               setInputs(prev => ({...prev, race: res.data.races[0] || '', session: ''}));
           });
       }
-  }, [inputs.year]);
+  }, [inputs.year, API_BASE]);
 
   useEffect(() => {
       if(inputs.year && inputs.race) {
@@ -126,7 +126,7 @@ function Dashboard({ session, handleLogout }) {
               setInputs(prev => ({...prev, session: def}));
           });
       }
-  }, [inputs.year, inputs.race]);
+  }, [inputs.year, inputs.race, API_BASE]);
 
   const isQualiSession = inputs.session && (inputs.session.includes('Qualifying') || inputs.session.includes('Sprint Qualifying'));
   const isRaceOrPractice = inputs.session && !isQualiSession; 
@@ -172,7 +172,7 @@ function Dashboard({ session, handleLogout }) {
     [deltaChartRef, speedChartRef, throttleChartRef, brakeChartRef, rpmChartRef, longGChartRef].forEach(ref => { if (ref.current) ref.current.resetZoom(); });
   };
 
-  // --- CHART DATA PREPARATION (useMemo to fix Zoom Bug) ---
+  // --- STABLE CHART DATA PREPARATION (Fixes Zoom Bug) ---
 
   const getDatasets = (metric) => {
     if (!telemetryData) return [];
@@ -231,10 +231,12 @@ function Dashboard({ session, handleLogout }) {
       }
   };
 
-  // --- CHART OPTIONS ---
+  // --- STABLE CHART OPTIONS ---
 
-  const telemetryOptions = {
-    animation: false, maintainAspectRatio: false, 
+  const telemetryOptions = useMemo(() => ({
+    animation: false, 
+    maintainAspectRatio: false, 
+    responsive: true,
     interaction: { mode: 'index', intersect: false },
     onHover: (e, elements) => {
         if (elements && elements.length > 0) setHoverIndex(elements[0].index);
@@ -243,15 +245,21 @@ function Dashboard({ session, handleLogout }) {
     plugins: { 
         legend: { display: false }, 
         zoom: { 
-            zoom: { drag: { enabled: true, backgroundColor: 'rgba(0, 243, 255, 0.2)', borderColor: COLORS.neon, borderWidth: 1 }, mode: 'x' }, 
+            zoom: { 
+                drag: { enabled: true, backgroundColor: 'rgba(0, 243, 255, 0.2)', borderColor: COLORS.neon, borderWidth: 1 }, 
+                mode: 'x' 
+            }, 
             pan: { enabled: true, mode: 'x', modifierKey: 'shift' } 
         } 
     },
-    scales: { x: { type: 'linear', ticks: { color: '#888', font: {family: '"Titillium Web"'}}, grid: { color: COLORS.grid } }, y: { ticks: { color: '#888', font: {family: '"Titillium Web"'} }, grid: { color: COLORS.grid } } }
-  };
+    scales: { 
+        x: { type: 'linear', ticks: { color: '#888', font: {family: '"Titillium Web"'}}, grid: { color: COLORS.grid } }, 
+        y: { ticks: { color: '#888', font: {family: '"Titillium Web"'} }, grid: { color: COLORS.grid } } 
+    }
+  }), []);
 
-  const distributionOptions = {
-      animation: false, maintainAspectRatio: false, onClick: handleDistributionClick,
+  const distributionOptions = useMemo(() => ({
+      animation: false, maintainAspectRatio: false, responsive: true, onClick: handleDistributionClick,
       plugins: {
           legend: { display: false }, zoom: false,
           tooltip: { 
@@ -275,7 +283,7 @@ function Dashboard({ session, handleLogout }) {
               grid: { color: COLORS.grid }, title: { display: true, text: 'LAP TIME (m:ss.ms)', color: '#666', font:{weight:'bold'} } 
           }
       }
-  };
+  }), [activeDrivers]);
 
   const getTrackMapData = () => {
       if(!telemetryData) return { datasets: [] };
@@ -419,7 +427,7 @@ function Dashboard({ session, handleLogout }) {
 
       {isRaceOrPractice && raceLapData && !loading && (
           <div className="dashboard-grid-race">
-               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '600px'}}>
+               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '875px'}}>
                    <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
                    <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
                        <Scatter ref={distributionChartRef} options={distributionOptions} data={raceDistributionData} />
