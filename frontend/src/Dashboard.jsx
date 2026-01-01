@@ -665,7 +665,7 @@ function Dashboard({ session, handleLogout }) {
 
       {isRaceOrPractice && raceLapData && !loading && (
           <div className="dashboard-grid-race">
-               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '600px'}}>
+               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '800px'}}>
                    <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
                    <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
                        <Scatter ref={distributionChartRef} options={distributionOptions} data={raceDistributionData} />
@@ -783,7 +783,7 @@ function Dashboard({ session, handleLogout }) {
 }
 
 const styles = {
-    topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(30, 30, 47, 0.7)', backdropFilter: 'blur(10px)', padding: '12px 25px', borderRadius: '12px', marginBottom: '30px', border: `1px solid ${COLORS.border}` },
+topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(30, 30, 47, 0.7)', backdropFilter: 'blur(10px)', padding: '12px 25px', borderRadius: '12px', marginBottom: '30px', border: `1px solid ${COLORS.border}` },
     logoutBtn: { background: 'transparent', color: COLORS.textDim, border: `1px solid ${COLORS.border}`, padding: '6px 18px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8em', transition: '0.2s', fontWeight: '600' },
     controlsBar: { fontSize:'0.8em', color: COLORS.textDim, background: COLORS.card, padding:'8px 15px', borderRadius:'6px', border: `1px solid ${COLORS.border}` },
     select: { padding: '12px', borderRadius: '8px', border: `1px solid ${COLORS.border}`, background: COLORS.card, color: 'white', fontWeight:'600', fontSize:'0.9em', cursor:'pointer', minWidth:'120px' },
@@ -804,42 +804,28 @@ const styles = {
     floatingHeader: { padding: '12px 15px', background: 'rgba(255,255,255,0.05)', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'move', color: COLORS.neon, fontWeight: 'bold', fontSize: '0.9em', letterSpacing: '1px' },
     closeBtn: { background: 'transparent', border:'none', color:'#888', fontSize:'1.2em', cursor:'pointer', padding:'0 5px' },
     
-// --- CHAMPIONSHIP MODAL STYLES (UPDATED FOR SCROLLING) ---
-    modalOverlay: { 
-        position: 'fixed', top:0, left:0, width:'100vw', height:'100vh', 
-        background: 'rgba(0,0,0,0.8)', backdropFilter:'blur(8px)', zIndex: 10000, 
-        display:'flex', justifyContent:'center', alignItems:'center', animation: 'fadeIn 0.2s ease' 
-    },
-    modalContent: { 
-        width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', 
-        border: `1px solid ${COLORS.border}`, padding: '30px', 
-        display:'flex', flexDirection:'column' 
-    },
-    modalHeader: { 
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-        marginBottom: '20px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'20px',
-        flexShrink: 0 
-    },
-    // SCROLLABLE CONTAINER
-    standingsContainer: { 
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', 
-        height: '100%', overflow: 'hidden', minHeight: 0 
-    },
-    // Tables need to scroll independently
-    scrollableCard: {
-        background: COLORS.card, padding: '20px', borderRadius: '16px', 
-        border: `1px solid ${COLORS.border}`, overflowY: 'auto',
-        maxHeight: '100%' // Fills the grid cell
-    },
+    // --- CHAMPIONSHIP MODAL STYLES ---
+    modalOverlay: { position: 'fixed', top:0, left:0, width:'100vw', height:'100vh', background: 'rgba(0,0,0,0.8)', backdropFilter:'blur(8px)', zIndex: 10000, display:'flex', justifyContent:'center', alignItems:'center', animation: 'fadeIn 0.2s ease' },
+    modalContent: { width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', border: `1px solid ${COLORS.border}`, padding: '30px', display:'flex', flexDirection:'column' },
+    modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'20px', flexShrink: 0 },
+    
+    // Standings (Static View)
+    standingsContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', height: '100%', overflow:'hidden', minHeight: 0 },
+    scrollableCard: { background: COLORS.card, padding: '20px', borderRadius: '16px', border: `1px solid ${COLORS.border}`, overflowY: 'auto', maxHeight: '100%' }, // NEW: Makes WDC/WCC cards scrollable
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px', fontSize:'0.9em' },
     
-    // Predictor Styles
+    // Predictor View
     predictorContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '20px', height: '100%', minHeight:0 },
-    predGrid: { display: 'grid', gridTemplateColumns: '1fr', gap: '10px' },
+    
+    // NEW: Scrollable grid for predictions (Race/Sprint Inputs)
+    predGrid: { display: 'grid', gridTemplateColumns: '1fr', gap: '10px', overflowY: 'auto', maxHeight: '500px', paddingRight: '5px' }, 
+    
     predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px' },
     predSelect: { background: 'transparent', border: 'none', color: 'white', flex: 1, fontFamily:'inherit', cursor:'pointer' },
     colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px' },
-    standingsList: { maxHeight: '100%', overflowY: 'auto' }, // Allow scrolling for lists
+    
+    // Scrollable list for Live Standings (Right Side)
+    standingsList: { maxHeight: '100%', overflowY: 'auto' }, 
     standingRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: `1px solid ${COLORS.grid}`, fontSize:'0.9em' }
 };
 
