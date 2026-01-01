@@ -279,7 +279,10 @@ function Dashboard({ session, handleLogout }) {
               type: 'linear', offset: false, title: { display: true, text: 'DRIVERS', color: '#666', font:{weight:'bold'} },
               ticks: { 
                   color: 'white', font: { size: 14, weight: 'bold', family: '"Titillium Web"' }, stepSize: 1,
-                  callback: (val) => activeDrivers[Math.round(val)] || '', autoSkip: false
+                  callback: (val) => activeDrivers[Math.round(val)] || '', autoSkip: false, 
+                  align: 'right',
+                  labelOffset: 55
+                  
               }, 
               grid: { display: false }, min: -0.5, max: activeDrivers.length - 0.5 
           },
@@ -432,7 +435,7 @@ function Dashboard({ session, handleLogout }) {
 
       {isRaceOrPractice && raceLapData && !loading && (
           <div className="dashboard-grid-race">
-               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '600px'}}>
+               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '800px'}}>
                    <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
                    <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
                        <Scatter ref={distributionChartRef} options={distributionOptions} data={raceDistributionData} />
