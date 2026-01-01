@@ -23,33 +23,16 @@ const COLORS = {
 };
 
 const DRIVER_COLORS = [
-  '#4363d8', // blue
-  '#e6194b', // red
-  '#f58231', // orange
-  '#ffe119', // yellow
-  '#911eb4', // purple
-  '#3cb44b', // green
-  '#46f0f0', // cyan
-  '#f032e6', // magenta
-  '#bcf60c', // lime
-  '#fabebe', // pink
-  '#008080', // teal
-  '#e6beff', // lavender
-  '#9a6324', // brown
-  '#fffac8', // beige
-  '#800000', // maroon
-  '#aaffc3', // mint
-  '#808000', // olive
-  '#ffd8b1', // peach
-  '#000075', // navy
-  '#808080'  // gray
+  '#4363d8', '#e6194b', '#f58231', '#ffe119', '#911eb4', 
+  '#3cb44b', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', 
+  '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000'
 ];
-
 
 const TYRE_COLORS = {
     'SOFT': '#ff3b30', 'MEDIUM': '#ffcc00', 'HARD': '#ffffff',
     'INTERMEDIATE': '#43a047', 'WET': '#0057e7', 'UNKNOWN': '#888'
 };
+
 const TYRE_EMOJIS = {
     'SOFT': '🔴', 'MEDIUM': '🟡', 'HARD': '⚪',
     'INTERMEDIATE': '🟢', 'WET': '🔵', 'UNKNOWN': '❓'
@@ -69,6 +52,10 @@ const formatTime = (s) => {
 
 const getSectorColor = (val, best) => (val <= best + 0.001 ? COLORS.neon : '#666');
 const getTyreColor = (c) => TYRE_COLORS[c] || TYRE_COLORS['UNKNOWN'];
+
+// --- CHAMPIONSHIP PREDICTOR LOGIC ---
+const POINTS_SYSTEM = { 1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1 };
+const SPRINT_POINTS = { 1: 8, 2: 7, 3: 6, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1 };
 
 function Dashboard({ session, handleLogout }) {
   const [loading, setLoading] = useState(false);
@@ -96,10 +83,19 @@ function Dashboard({ session, handleLogout }) {
   const [selectedLaps, setSelectedLaps] = useState([]); 
   const [hoverIndex, setHoverIndex] = useState(null); 
 
+  // Track Map State
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [mapSize, setMapSize] = useState({ width: 500, height: 480 });
   const [mapPosition, setMapPosition] = useState({ x: 0, y: 0 });
   
+  // Championship & Predictor State
+  const [isChampModalOpen, setIsChampModalOpen] = useState(false);
+  const [standings, setStandings] = useState({ wdc: [], wcc: [] });
+  const [schedule, setSchedule] = useState([]);
+  const [predictionMode, setPredictionMode] = useState(false);
+  const [predictions, setPredictions] = useState({}); // { roundId: { race: {pos: driver}, sprint: {pos: driver} } }
+  const [currentPredictRound, setCurrentPredictRound] = useState(0);
+
   const widgetRef = useRef(null);
   const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -114,6 +110,7 @@ function Dashboard({ session, handleLogout }) {
 
   const API_BASE = import.meta.env.VITE_API_URL || 'https://f1-backend.zeabur.app';
 
+  // --- INITIAL DATA FETCH ---
   useEffect(() => {
       setTelemetryData(null); setRaceLapData(null); setStintData(null); 
       setRaceWinner(null); setRaceWeather(null); setSelectedLaps([]); 
@@ -145,6 +142,83 @@ function Dashboard({ session, handleLogout }) {
           });
       }
   }, [inputs.year, inputs.race, API_BASE]);
+
+  // --- CHAMPIONSHIP DATA ---
+  const fetchChampionshipData = async () => {
+      setIsChampModalOpen(true);
+      try {
+          const sRes = await axios.get(`${API_BASE}/standings?year=${inputs.year}`);
+          const schedRes = await axios.get(`${API_BASE}/schedule?year=${inputs.year}`);
+          setStandings(sRes.data.data);
+          setSchedule(schedRes.data.data);
+          
+          // If current/future season, allow prediction
+          const currentYear = new Date().getFullYear();
+          if (parseInt(inputs.year) >= currentYear) {
+               // Find first upcoming race
+               const nextRace = schedRes.data.data.find(r => !r.is_done);
+               if(nextRace) setCurrentPredictRound(nextRace.round - 1); // 0-indexed
+          }
+      } catch (err) { console.error(err); }
+  };
+
+  // --- PREDICTOR LOGIC ---
+  const getSimulatedStandings = () => {
+      // Deep clone current standings
+      let simWdc = standings.wdc.map(d => ({...d}));
+      let simWcc = standings.wcc.map(t => ({...t}));
+
+      // Apply points from predictions
+      Object.keys(predictions).forEach(round => {
+          const roundPred = predictions[round];
+          if(roundPred.race) {
+              Object.entries(roundPred.race).forEach(([pos, driverCode]) => {
+                  const points = POINTS_SYSTEM[pos] || 0;
+                  const driver = simWdc.find(d => d.code === driverCode);
+                  if(driver) {
+                      driver.points += points;
+                      const team = simWcc.find(t => t.team === driver.team); // Simple match
+                      if(team) team.points += points;
+                  }
+              });
+          }
+          if(roundPred.sprint) {
+              Object.entries(roundPred.sprint).forEach(([pos, driverCode]) => {
+                  const points = SPRINT_POINTS[pos] || 0;
+                  const driver = simWdc.find(d => d.code === driverCode);
+                  if(driver) {
+                      driver.points += points;
+                      const team = simWcc.find(t => t.team === driver.team);
+                      if(team) team.points += points;
+                  }
+              });
+          }
+      });
+
+      // Sort
+      simWdc.sort((a,b) => b.points - a.points);
+      simWcc.sort((a,b) => b.points - a.points);
+      
+      // Re-assign positions
+      simWdc.forEach((d,i) => d.position = i+1);
+      simWcc.forEach((t,i) => t.position = i+1);
+
+      return { wdc: simWdc, wcc: simWcc };
+  };
+
+  const updatePrediction = (type, pos, driverCode) => {
+      const roundData = schedule[currentPredictRound];
+      setPredictions(prev => ({
+          ...prev,
+          [roundData.round]: {
+              ...prev[roundData.round],
+              [type]: {
+                  ...(prev[roundData.round]?.[type] || {}),
+                  [pos]: driverCode
+              }
+          }
+      }));
+  };
 
   const isQualiSession = inputs.session && (inputs.session.includes('Qualifying') || inputs.session.includes('Sprint Qualifying'));
   const isRaceOrPractice = inputs.session && !isQualiSession; 
@@ -190,8 +264,7 @@ function Dashboard({ session, handleLogout }) {
     [deltaChartRef, speedChartRef, throttleChartRef, brakeChartRef, rpmChartRef, longGChartRef].forEach(ref => { if (ref.current) ref.current.resetZoom(); });
   };
 
-  // --- STABLE CHART DATA PREPARATION ---
-
+  // --- STABLE CHART DATA ---
   const getDatasets = (metric) => {
     if (!telemetryData) return [];
     return Object.keys(telemetryData.drivers).map((key, idx) => ({
@@ -233,42 +306,25 @@ function Dashboard({ session, handleLogout }) {
     return { datasets: [{ label: 'Laps', data: plotData, pointStyle: 'circle', pointBackgroundColor: pointColors, pointBorderColor: borderColors, pointBorderWidth: borderCmds, pointRadius: radiuses }] };
   }, [raceLapData, selectedLaps, activeDrivers]);
 
-const handleDistributionClick = (event, elements) => {
+  const handleDistributionClick = (event, elements) => {
     if (elements.length === 0 || !raceLapData) return;
-    
     const dataIndex = elements[0].index;
     const rawPointData = raceDistributionData.datasets[0].data[dataIndex];
-    
     if (rawPointData && rawPointData.rawLapData) {
         const { driver, lap_number } = rawPointData.rawLapData;
-        
-        // Use functional state update to ensure we have the most recent selection
         setSelectedLaps(prevSelected => {
             const exists = prevSelected.find(s => s.driver === driver && s.lap === lap_number);
             let newSelection;
-            
-            if (exists) {
-                // If already selected, remove it (deselect)
-                newSelection = prevSelected.filter(s => !(s.driver === driver && s.lap === lap_number));
-            } else {
-                // Add new lap to the existing selection
-                newSelection = [...prevSelected, { driver, lap: lap_number }];
-            }
-            
-            // Trigger the fetch with the full updated selection
-            if (newSelection.length > 0) {
-                fetchDetailedTelemetry(newSelection);
-            } else {
-                setTelemetryData(null);
-            }
-            
+            if (exists) newSelection = prevSelected.filter(s => !(s.driver === driver && s.lap === lap_number));
+            else newSelection = [...prevSelected, { driver, lap: lap_number }];
+            if (newSelection.length > 0) fetchDetailedTelemetry(newSelection);
+            else setTelemetryData(null);
             return newSelection;
         });
     }
-};
+  };
 
   // --- STABLE CHART OPTIONS ---
-
   const telemetryOptions = useMemo(() => ({
     animation: false, maintainAspectRatio: false, responsive: true,
     interaction: { mode: 'index', intersect: false },
@@ -276,26 +332,12 @@ const handleDistributionClick = (event, elements) => {
         if (elements && elements.length > 0) setHoverIndex(elements[0].index);
         else setHoverIndex(null);
     },
-    plugins: { 
-        legend: { display: false }, 
-        zoom: { 
-            zoom: { drag: { enabled: true, backgroundColor: 'rgba(0, 243, 255, 0.2)', borderColor: COLORS.neon, borderWidth: 1 }, mode: 'x' }, 
-            pan: { enabled: true, mode: 'x', modifierKey: 'shift' } 
-        } 
-    },
-    scales: { 
-        x: { type: 'linear', ticks: { color: '#888', font: {family: '"Titillium Web"'}}, grid: { color: COLORS.grid } }, 
-        y: { ticks: { color: '#888', font: {family: '"Titillium Web"'} }, grid: { color: COLORS.grid } } 
-    }
+    plugins: { legend: { display: false }, zoom: { zoom: { drag: { enabled: true, backgroundColor: 'rgba(0, 243, 255, 0.2)', borderColor: COLORS.neon, borderWidth: 1 }, mode: 'x' }, pan: { enabled: true, mode: 'x', modifierKey: 'shift' } } },
+    scales: { x: { type: 'linear', ticks: { color: '#888', font: {family: '"Titillium Web"'}}, grid: { color: COLORS.grid } }, y: { ticks: { color: '#888', font: {family: '"Titillium Web"'} }, grid: { color: COLORS.grid } } }
   }), []);
 
-  // Fixed specific options for percentage charts to allow zooming
   const pctTelemetryOptions = useMemo(() => ({
-      ...telemetryOptions,
-      scales: {
-          ...telemetryOptions.scales,
-          y: { min: 0, max: 105, ticks: { color: '#888' }, grid: { color: COLORS.grid } }
-      }
+      ...telemetryOptions, scales: { ...telemetryOptions.scales, y: { min: 0, max: 105, ticks: { color: '#888' }, grid: { color: COLORS.grid } } }
   }), [telemetryOptions]);
 
   const distributionOptions = useMemo(() => ({
@@ -310,19 +352,10 @@ const handleDistributionClick = (event, elements) => {
       scales: {
           x: { 
               type: 'linear', offset: false, title: { display: true, text: 'DRIVERS', color: '#666', font:{weight:'bold'} },
-              ticks: { 
-                  color: 'white', font: { size: 14, weight: 'bold', family: '"Titillium Web"' }, stepSize: 1,
-                  callback: (val) => activeDrivers[Math.round(val)] || '', autoSkip: false, 
-                  align: 'right',
-                  labelOffset: 55
-                  
-              }, 
+              ticks: { color: 'white', font: { size: 14, weight: 'bold', family: '"Titillium Web"' }, stepSize: 1, callback: (val) => activeDrivers[Math.round(val)] || '', autoSkip: false }, 
               grid: { display: false }, min: -0.5, max: activeDrivers.length - 0.5 
           },
-          y: { 
-              ticks: { color: '#888', callback: (val) => formatTime(val), stepSize: 0.1 }, 
-              grid: { color: COLORS.grid }, title: { display: true, text: 'LAP TIME (m:ss.ms)', color: '#666', font:{weight:'bold'} } 
-          }
+          y: { ticks: { color: '#888', callback: (val) => formatTime(val), stepSize: 0.1 }, grid: { color: COLORS.grid }, title: { display: true, text: 'LAP TIME (m:ss.ms)', color: '#666', font:{weight:'bold'} } }
       }
   }), [activeDrivers]);
 
@@ -410,11 +443,169 @@ const handleDistributionClick = (event, elements) => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
   };
+  
+  // Predictor Helpers
+  const displayedStandings = predictionMode ? getSimulatedStandings() : standings;
+  const currentRace = schedule[currentPredictRound];
+  const nextRound = () => setCurrentPredictRound(p => Math.min(p + 1, schedule.length - 1));
+  const prevRound = () => setCurrentPredictRound(p => Math.max(p - 1, 0));
 
   return (
     <div style={{ padding: '20px', background: COLORS.bg, color: COLORS.text, minHeight: '100vh', fontFamily: '"Titillium Web", sans-serif' }}>
       
-      {/* EXPANDED FLOATING WIDGET */}
+      {/* CHAMPIONSHIP MODAL */}
+      {isChampModalOpen && (
+          <div style={styles.modalOverlay} onClick={() => setIsChampModalOpen(false)}>
+              <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+                  <div style={styles.modalHeader}>
+                      <h2>🏆 {inputs.year} CHAMPIONSHIP {predictionMode && <span style={{color: COLORS.neon}}>PREDICTOR</span>}</h2>
+                      <div style={{display:'flex', gap:'15px', alignItems:'center'}}>
+                         {parseInt(inputs.year) >= new Date().getFullYear() && (
+                             <button onClick={() => setPredictionMode(!predictionMode)} style={predictionMode ? styles.btnPrimary : styles.btnOutline}>
+                                 {predictionMode ? 'EXIT PREDICTOR' : 'PREDICT FUTURE'}
+                             </button>
+                         )}
+                         <button onClick={() => setIsChampModalOpen(false)} style={styles.closeBtn}>✕</button>
+                      </div>
+                  </div>
+
+                  {predictionMode && currentRace ? (
+                      <div style={styles.predictorContainer}>
+                          {/* PREDICTOR WIDGET */}
+                          <div style={{...styles.card, gridColumn: 'span 2'}}>
+                              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
+                                  <button onClick={prevRound} style={styles.miniBtn}>◀</button>
+                                  <div style={{textAlign:'center'}}>
+                                      <div style={{color: COLORS.neon, letterSpacing:'2px', fontSize:'0.8em'}}>ROUND {currentRace.round}</div>
+                                      <h3 style={{margin:0}}>{currentRace.name}</h3>
+                                      <div style={{color: '#666', fontSize:'0.8em'}}>{new Date(currentRace.date).toLocaleDateString()}</div>
+                                  </div>
+                                  <button onClick={nextRound} style={styles.miniBtn}>▶</button>
+                              </div>
+                              
+                              <div style={{display:'flex', gap:'20px'}}>
+                                  <div style={{flex:1}}>
+                                      <h5 style={styles.colHeader}>RACE PREDICTION</h5>
+                                      <div style={styles.predGrid}>
+                                        {[...Array(10)].map((_, i) => (
+                                            <div key={i} style={styles.predRow}>
+                                                <span style={{color:'#666', width:'25px'}}>{i+1}</span>
+                                                <select 
+                                                    style={styles.predSelect} 
+                                                    value={predictions[currentRace.round]?.race?.[i+1] || ''}
+                                                    onChange={(e) => updatePrediction('race', i+1, e.target.value)}
+                                                >
+                                                    <option value="">Select Driver</option>
+                                                    {standings.wdc.map(d => <option key={d.code} value={d.code}>{d.code}</option>)}
+                                                </select>
+                                                <span style={{color: COLORS.neon, fontSize:'0.8em'}}>+{POINTS_SYSTEM[i+1]}pts</span>
+                                            </div>
+                                        ))}
+                                      </div>
+                                  </div>
+                                  {currentRace.is_sprint && (
+                                      <div style={{flex:1}}>
+                                          <h5 style={styles.colHeader}>SPRINT PREDICTION</h5>
+                                          <div style={styles.predGrid}>
+                                            {[...Array(8)].map((_, i) => (
+                                                <div key={i} style={styles.predRow}>
+                                                    <span style={{color:'#666', width:'25px'}}>{i+1}</span>
+                                                    <select 
+                                                        style={styles.predSelect}
+                                                        value={predictions[currentRace.round]?.sprint?.[i+1] || ''}
+                                                        onChange={(e) => updatePrediction('sprint', i+1, e.target.value)}
+                                                    >
+                                                        <option value="">Select Driver</option>
+                                                        {standings.wdc.map(d => <option key={d.code} value={d.code}>{d.code}</option>)}
+                                                    </select>
+                                                    <span style={{color: COLORS.neon, fontSize:'0.8em'}}>+{SPRINT_POINTS[i+1]}pts</span>
+                                                </div>
+                                            ))}
+                                          </div>
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+                          
+                          {/* LIVE STANDINGS WIDGETS */}
+                          <div style={styles.card}>
+                              <h4 style={styles.cardTitle}>WDC (LIVE)</h4>
+                              <div style={styles.standingsList}>
+                                  {displayedStandings.wdc.map((d, i) => (
+                                      <div key={d.code} style={styles.standingRow}>
+                                          <span style={{color: COLORS.neon, width:'20px'}}>{i+1}</span>
+                                          <span style={{flex:1}}>{d.code}</span>
+                                          <b>{d.points}</b>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+                          <div style={styles.card}>
+                              <h4 style={styles.cardTitle}>WCC (LIVE)</h4>
+                              <div style={styles.standingsList}>
+                                  {displayedStandings.wcc.map((t, i) => (
+                                      <div key={t.id} style={styles.standingRow}>
+                                          <span style={{color: COLORS.neon, width:'20px'}}>{i+1}</span>
+                                          <span style={{flex:1}}>{t.team}</span>
+                                          <b>{t.points}</b>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+                      </div>
+                  ) : (
+                      <div style={styles.standingsContainer}>
+                          <div style={styles.card}>
+                              <h3 style={styles.cardTitle}>WORLD DRIVERS' CHAMPIONSHIP</h3>
+                              <table style={styles.table}>
+                                  <thead>
+                                      <tr style={{color: COLORS.textDim, fontSize:'0.8em'}}>
+                                          <th style={{textAlign:'left'}}>POS</th>
+                                          <th style={{textAlign:'left'}}>DRIVER</th>
+                                          <th style={{textAlign:'left'}}>TEAM</th>
+                                          <th style={{textAlign:'right'}}>PTS</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {displayedStandings.wdc.map(d => (
+                                          <tr key={d.code} style={{borderBottom: `1px solid ${COLORS.grid}`}}>
+                                              <td style={{color: COLORS.neon, fontWeight:'bold', padding:'10px 0'}}>{d.position}</td>
+                                              <td>{d.name}</td>
+                                              <td style={{color: '#888', fontSize:'0.9em'}}>{d.team}</td>
+                                              <td style={{textAlign:'right', fontWeight:'bold'}}>{d.points}</td>
+                                          </tr>
+                                      ))}
+                                  </tbody>
+                              </table>
+                          </div>
+                          <div style={styles.card}>
+                              <h3 style={styles.cardTitle}>WORLD CONSTRUCTORS' CHAMPIONSHIP</h3>
+                              <table style={styles.table}>
+                                  <thead>
+                                      <tr style={{color: COLORS.textDim, fontSize:'0.8em'}}>
+                                          <th style={{textAlign:'left'}}>POS</th>
+                                          <th style={{textAlign:'left'}}>TEAM</th>
+                                          <th style={{textAlign:'right'}}>PTS</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {displayedStandings.wcc.map(t => (
+                                          <tr key={t.id} style={{borderBottom: `1px solid ${COLORS.grid}`}}>
+                                              <td style={{color: COLORS.neon, fontWeight:'bold', padding:'10px 0'}}>{t.position}</td>
+                                              <td>{t.team}</td>
+                                              <td style={{textAlign:'right', fontWeight:'bold'}}>{t.points}</td>
+                                          </tr>
+                                      ))}
+                                  </tbody>
+                              </table>
+                          </div>
+                      </div>
+                  )}
+              </div>
+          </div>
+      )}
+
+      {/* TRACK MAP WIDGET */}
       {isMapExpanded && telemetryData && (
           <div ref={widgetRef} style={{ ...styles.floatingWidget, left: mapPosition.x, top: mapPosition.y, width: `${mapSize.width}px`, height: `${mapSize.height}px`, resize: 'both', overflow: 'hidden' }}>
               <div style={styles.floatingHeader} onMouseDown={handleMouseDown} title="Drag Header to Move | Drag Bottom-Right to Resize">
@@ -433,6 +624,12 @@ const handleDistributionClick = (event, elements) => {
           Logged in as: <b style={{ color: COLORS.neon }}>{session?.user?.user_metadata?.full_name || session?.user?.email}</b>
         </span>
         <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
+             
+             {/* CHAMPIONSHIP BUTTON */}
+             <div className="map-trigger" style={styles.mapButton} onClick={fetchChampionshipData} title="Championship Standings">
+                 🏆
+             </div>
+
              {telemetryData && !isMapExpanded && (
                  <div style={{position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor:'pointer'}} onClick={toggleMapExpand} className="map-trigger">
                      <div style={styles.tooltipAbove}>CLICK TO EXPAND</div>
@@ -468,7 +665,7 @@ const handleDistributionClick = (event, elements) => {
 
       {isRaceOrPractice && raceLapData && !loading && (
           <div className="dashboard-grid-race">
-               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '800px'}}>
+               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '600px'}}>
                    <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
                    <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
                        <Scatter ref={distributionChartRef} options={distributionOptions} data={raceDistributionData} />
@@ -511,7 +708,6 @@ const handleDistributionClick = (event, elements) => {
       {telemetryData && !loading && Object.keys(telemetryData.drivers).length > 0 && (
           <div className="dashboard-grid-telemetry">
               <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
-                {/* POLE POSITION BAR RESTORED */}
                 {isQualiSession && telemetryData.pole_info && (
                     <div style={{background: 'rgba(0, 243, 255, 0.05)', padding:'15px', borderRadius:'8px', border:`1px solid ${COLORS.neon}`, color: COLORS.neon, display:'flex', justifyContent:'center', alignItems:'center', textShadow: `0 0 10px rgba(0,243,255,0.3)`, marginBottom: '10px'}}>
                         🏆 <b>POLE POSITION:</b> &nbsp; {telemetryData.pole_info.driver} &nbsp; ({formatTime(telemetryData.pole_info.time)})
@@ -593,6 +789,7 @@ const styles = {
     select: { padding: '12px', borderRadius: '8px', border: `1px solid ${COLORS.border}`, background: COLORS.card, color: 'white', fontWeight:'600', fontSize:'0.9em', cursor:'pointer', minWidth:'120px' },
     input: { padding: '12px', borderRadius: '8px', border: `1px solid ${COLORS.border}`, background: COLORS.card, color: 'white', fontWeight:'600', fontSize:'0.9em', width:'180px' },
     btnPrimary: { padding: '12px 25px', background: COLORS.primary, color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight:'700', fontSize:'0.9em', letterSpacing:'1px', boxShadow: `0 4px 15px rgba(255, 24, 1, 0.4)` },
+    btnOutline: { padding: '12px 25px', background: 'transparent', color: COLORS.neon, border: `1px solid ${COLORS.neon}`, borderRadius: '8px', cursor: 'pointer', fontWeight:'700', fontSize:'0.9em', letterSpacing:'1px' },
     btnDisabled: { padding: '12px 25px', background: '#444', color: '#888', border: 'none', borderRadius: '8px', fontWeight:'700', fontSize:'0.9em' },
     card: { background: COLORS.card, padding: '25px', borderRadius: '16px', border: `1px solid ${COLORS.border}`, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' },
     cardTitle: { marginTop: 0, marginBottom: '20px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom: '15px', fontSize: '0.9em', color: COLORS.textDim, textTransform: 'uppercase', letterSpacing: '1px' },
@@ -601,20 +798,35 @@ const styles = {
     chartTitle: { margin:0, color: COLORS.textDim, fontSize:'0.8em', letterSpacing:'1px', textTransform:'uppercase' },
     miniBtn: { padding: '4px 10px', background: 'rgba(255,255,255,0.05)', color: COLORS.textDim, border: `1px solid ${COLORS.border}`, borderRadius: '4px', cursor: 'pointer', fontSize: '0.7em' },
     errorBanner: { padding: '15px', background: 'rgba(255, 0, 0, 0.1)', borderRadius: '8px', marginBottom: '20px', borderLeft: `4px solid ${COLORS.primary}`, color: '#ffaaaa' },
-    mapButton: { width: '40px', height: '40px', borderRadius: '50%', background: '#1a1a2e', border: `1px solid ${COLORS.neon}`, cursor: 'pointer', overflow: 'hidden', boxShadow: '0 0 10px rgba(0, 243, 255, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    mapButton: { width: '40px', height: '40px', borderRadius: '50%', background: '#1a1a2e', border: `1px solid ${COLORS.neon}`, cursor: 'pointer', overflow: 'hidden', boxShadow: '0 0 10px rgba(0, 243, 255, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2em' },
     tooltipAbove: { position: 'absolute', top: '-30px', whiteSpace: 'nowrap', background: 'rgba(0,0,0,0.8)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7em', color: COLORS.neon, pointerEvents: 'none', opacity: 0, transition: 'opacity 0.2s', },
     floatingWidget: { position: 'fixed', width: '500px', background: 'rgba(20, 20, 35, 0.95)', border: `2px solid ${COLORS.neon}`, borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', zIndex: 9999, backdropFilter: 'blur(10px)', animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' },
     floatingHeader: { padding: '12px 15px', background: 'rgba(255,255,255,0.05)', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'move', color: COLORS.neon, fontWeight: 'bold', fontSize: '0.9em', letterSpacing: '1px' },
-    closeBtn: { background: 'transparent', border:'none', color:'#888', fontSize:'1.2em', cursor:'pointer', padding:'0 5px' }
+    closeBtn: { background: 'transparent', border:'none', color:'#888', fontSize:'1.2em', cursor:'pointer', padding:'0 5px' },
+    
+    // --- CHAMPIONSHIP MODAL STYLES ---
+    modalOverlay: { position: 'fixed', top:0, left:0, width:'100vw', height:'100vh', background: 'rgba(0,0,0,0.8)', backdropFilter:'blur(8px)', zIndex: 10000, display:'flex', justifyContent:'center', alignItems:'center', animation: 'fadeIn 0.2s ease' },
+    modalContent: { width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', border: `1px solid ${COLORS.border}`, padding: '30px', overflowY: 'auto', display:'flex', flexDirection:'column' },
+    modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'20px' },
+    standingsContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', height: '100%', overflow:'hidden' },
+    table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px', fontSize:'0.9em' },
+    predictorContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '20px', height: '100%' },
+    predGrid: { display: 'grid', gridTemplateColumns: '1fr', gap: '10px' },
+    predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px' },
+    predSelect: { background: 'transparent', border: 'none', color: 'white', flex: 1, fontFamily:'inherit', cursor:'pointer' },
+    colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px' },
+    standingsList: { maxHeight: '600px', overflowY: 'auto' },
+    standingRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: `1px solid ${COLORS.grid}`, fontSize:'0.9em' }
 };
 
 const styleSheet = document.createElement("style");
 styleSheet.innerText = `
   .map-trigger:hover .tooltip-above { opacity: 1 !important; }
-  @keyframes popIn {
-      from { transform: scale(0.9); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-  }
+  @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+  ::-webkit-scrollbar-thumb { background: #333; borderRadius: 3px; }
 `;
 document.head.appendChild(styleSheet);
 
