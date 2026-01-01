@@ -488,7 +488,7 @@ function Dashboard({ session, handleLogout }) {
                   {predictionMode && currentRace ? (
                       <div style={styles.predictorContainer}>
                           {/* PREDICTOR WIDGET (Left Side - Race & Sprint) */}
-                          <div style={{...styles.card, gridColumn: 'span 2', display: 'flex', flexDirection: 'column', height: '100%'}}>
+                          <div style={{...styles.scrollableCard, gridColumn: 'span 2', display: 'flex', flexDirection: 'column', height: '100%'}}>
                               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px', flexShrink: 0}}>
                                   <button onClick={prevRound} style={styles.miniBtn}>◀</button>
                                   <div style={{textAlign:'center'}}>
@@ -518,10 +518,9 @@ function Dashboard({ session, handleLogout }) {
                                                         value={currentVal}
                                                         onChange={(e) => updatePrediction('race', pos, e.target.value)}
                                                     >
-                                                        <option value="">Select Driver</option>
-                                                        {/* Show currently selected driver + available ones */}
-                                                        {currentVal && <option value={currentVal}>{currentVal}</option>}
-                                                        {available.map(d => <option key={d.code} value={d.code}>{d.code}</option>)}
+                                                        <option value=""style={{backgroundColor: '#2b2b3d', color: 'white'}}>Select Driver</option>
+                                                        {currentVal && <option value={currentVal}style={{backgroundColor: '#2b2b3d', color: 'white'}}>{currentVal}</option>}
+                                                        {available.map(d => <option key={d.code} value={d.code}style={{backgroundColor: '#2b2b3d', color: 'white'}}>{d.code}</option>)}
                                                     </select>
                                                     <span style={{color: COLORS.neon, fontSize:'0.8em'}}>+{POINTS_SYSTEM[pos]}pts</span>
                                                 </div>
@@ -548,9 +547,9 @@ function Dashboard({ session, handleLogout }) {
                                                             value={currentVal}
                                                             onChange={(e) => updatePrediction('sprint', pos, e.target.value)}
                                                         >
-                                                            <option value="">Select Driver</option>
-                                                            {currentVal && <option value={currentVal}>{currentVal}</option>}
-                                                            {available.map(d => <option key={d.code} value={d.code}>{d.code}</option>)}
+                                                            <option value=""style={{backgroundColor: '#2b2b3d', color: 'white'}}>Select Driver</option>
+                                                            {currentVal && <option value={currentVal}style={{backgroundColor: '#2b2b3d', color: 'white'}}>{currentVal}</option>}
+                                                            {available.map(d => <option key={d.code} value={d.code}style={{backgroundColor: '#2b2b3d', color: 'white'}}>{d.code}</option>)}
                                                         </select>
                                                         <span style={{color: COLORS.neon, fontSize:'0.8em'}}>+{SPRINT_POINTS[pos]}pts</span>
                                                     </div>
@@ -563,7 +562,7 @@ function Dashboard({ session, handleLogout }) {
                           </div>
                           
                           {/* LIVE STANDINGS WIDGETS (Right Side) */}
-                          <div style={{...styles.card, height: '100%', display: 'flex', flexDirection: 'column'}}>
+                          <div style={{...styles.scrollableCard, height: '100%', display: 'flex', flexDirection: 'column'}}>
                               <h4 style={styles.cardTitle}>WDC (PREDICTED)</h4>
                               <div style={styles.standingsList}>
                                   {displayedStandings.wdc.map((d, i) => (
