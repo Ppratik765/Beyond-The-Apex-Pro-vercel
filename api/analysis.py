@@ -21,8 +21,7 @@ fastf1.Cache.enable_cache(CACHE_DIR)
 # --- HELPER FUNCTIONS ---
 def get_available_years():
     current_year = datetime.date.today().year
-    return list(range(2021, current_year + 1))
-
+    return list(range(2018, current_year + 1))
 
 def get_races_for_year(year):
     try:
@@ -48,6 +47,20 @@ def get_races_for_year(year):
         return races
     except Exception as e:
         print(f"Error fetching races: {e}")
+        return []
+        
+
+def get_sessions_for_race(year, race_name):
+    try:
+        schedule = fastf1.get_event_schedule(year)
+        event = schedule[schedule['EventName'] == race_name].iloc[0]
+        sessions = []
+        for i in range(1, 6):
+            session_key = f'Session{i}'
+            if hasattr(event, session_key) and not pd.isna(event[session_key]):
+                sessions.append(event[session_key])
+        return sessions
+    except:
         return []
         
 # --- CORE ANALYSIS ---
@@ -374,4 +387,5 @@ def generate_ai_insights(multi_data, k1, k2):
     unique_insights = list(set(insights))
 
     return unique_insights[:15] if unique_insights else ["No significant differences found."]
+
 
