@@ -143,6 +143,18 @@ function Dashboard({ session, handleLogout }) {
       }
   }, [inputs.year, inputs.race, API_BASE]);
 
+  // --- NEW HELPER FOR EXCLUSIVE DROPDOWN ---
+  const getAvailableDrivers = (round, type, currentPos) => {
+      // Get all drivers currently picked for this specific round & type (race/sprint)
+      const picked = predictions[round]?.[type] || {};
+      const pickedCodes = Object.entries(picked)
+          .filter(([pos, code]) => parseInt(pos) !== currentPos && code) // Ignore self
+          .map(([_, code]) => code);
+      
+      // Return drivers who are NOT in the picked list
+      return standings.wdc.filter(d => !pickedCodes.includes(d.code));
+  };
+
   // --- CHAMPIONSHIP DATA ---
   const fetchChampionshipData = async () => {
       setIsChampModalOpen(true);
@@ -483,44 +495,62 @@ function Dashboard({ session, handleLogout }) {
                                   <button onClick={nextRound} style={styles.miniBtn}>▶</button>
                               </div>
                               
-                              <div style={{display:'flex', gap:'20px'}}>
+                              {/* SCROLLABLE PREDICTION AREA */}
+                              <div style={{display:'flex', gap:'20px', overflowY: 'auto', paddingRight: '5px', flex: 1}}>
+                                  {/* RACE COLUMN */}
                                   <div style={{flex:1}}>
-                                      <h5 style={styles.colHeader}>RACE PREDICTION</h5>
+                                      <h5 style={styles.colHeader}>RACE PREDICTION (TOP 10)</h5>
                                       <div style={styles.predGrid}>
-                                        {[...Array(10)].map((_, i) => (
-                                            <div key={i} style={styles.predRow}>
-                                                <span style={{color:'#666', width:'25px'}}>{i+1}</span>
-                                                <select 
-                                                    style={styles.predSelect} 
-                                                    value={predictions[currentRace.round]?.race?.[i+1] || ''}
-                                                    onChange={(e) => updatePrediction('race', i+1, e.target.value)}
-                                                >
-                                                    <option value="">Select Driver</option>
-                                                    {standings.wdc.map(d => <option key={d.code} value={d.code}>{d.code}</option>)}
-                                                </select>
-                                                <span style={{color: COLORS.neon, fontSize:'0.8em'}}>+{POINTS_SYSTEM[i+1]}pts</span>
-                                            </div>
-                                        ))}
-                                      </div>
-                                  </div>
-                                  {currentRace.is_sprint && (
-                                      <div style={{flex:1}}>
-                                          <h5 style={styles.colHeader}>SPRINT PREDICTION</h5>
-                                          <div style={styles.predGrid}>
-                                            {[...Array(8)].map((_, i) => (
+                                        {[...Array(10)].map((_, i) => {
+                                            const pos = i + 1;
+                                            const currentVal = predictions[currentRace.round]?.race?.[pos] || '';
+                                            const available = getAvailableDrivers(currentRace.round, 'race', pos);
+                                            
+                                            return (
                                                 <div key={i} style={styles.predRow}>
-                                                    <span style={{color:'#666', width:'25px'}}>{i+1}</span>
+                                                    <span style={{color:'#666', width:'25px'}}>{pos}</span>
                                                     <select 
-                                                        style={styles.predSelect}
-                                                        value={predictions[currentRace.round]?.sprint?.[i+1] || ''}
-                                                        onChange={(e) => updatePrediction('sprint', i+1, e.target.value)}
+                                                        style={styles.predSelect} 
+                                                        value={currentVal}
+                                                        onChange={(e) => updatePrediction('race', pos, e.target.value)}
                                                     >
                                                         <option value="">Select Driver</option>
-                                                        {standings.wdc.map(d => <option key={d.code} value={d.code}>{d.code}</option>)}
+                                                        {/* Show currently selected driver + available ones */}
+                                                        {currentVal && <option value={currentVal}>{currentVal}</option>}
+                                                        {available.map(d => <option key={d.code} value={d.code}>{d.code}</option>)}
                                                     </select>
-                                                    <span style={{color: COLORS.neon, fontSize:'0.8em'}}>+{SPRINT_POINTS[i+1]}pts</span>
+                                                    <span style={{color: COLORS.neon, fontSize:'0.8em'}}>+{POINTS_SYSTEM[pos]}pts</span>
                                                 </div>
-                                            ))}
+                                            );
+                                        })}
+                                      </div>
+                                  </div>
+                                  {/* SPRINT COLUMN (Conditional) */}
+                                  {currentRace.is_sprint && (
+                                      <div style={{flex:1}}>
+                                          <h5 style={styles.colHeader}>SPRINT PREDICTION (TOP 8)</h5>
+                                          <div style={styles.predGrid}>
+                                            {[...Array(8)].map((_, i) => {
+                                                const pos = i + 1;
+                                                const currentVal = predictions[currentRace.round]?.sprint?.[pos] || '';
+                                                const available = getAvailableDrivers(currentRace.round, 'sprint', pos);
+
+                                                return (
+                                                    <div key={i} style={styles.predRow}>
+                                                        <span style={{color:'#666', width:'25px'}}>{pos}</span>
+                                                        <select 
+                                                            style={styles.predSelect}
+                                                            value={currentVal}
+                                                            onChange={(e) => updatePrediction('sprint', pos, e.target.value)}
+                                                        >
+                                                            <option value="">Select Driver</option>
+                                                            {currentVal && <option value={currentVal}>{currentVal}</option>}
+                                                            {available.map(d => <option key={d.code} value={d.code}>{d.code}</option>)}
+                                                        </select>
+                                                        <span style={{color: COLORS.neon, fontSize:'0.8em'}}>+{SPRINT_POINTS[pos]}pts</span>
+                                                    </div>
+                                                );
+                                            })}
                                           </div>
                                       </div>
                                   )}
@@ -528,8 +558,8 @@ function Dashboard({ session, handleLogout }) {
                           </div>
                           
                           {/* LIVE STANDINGS WIDGETS */}
-                          <div style={styles.card}>
-                              <h4 style={styles.cardTitle}>WDC (LIVE)</h4>
+                          <div style={styles.scrollableCard}>
+                              <h4 style={styles.cardTitle}>WDC (PREDICTED)</h4>
                               <div style={styles.standingsList}>
                                   {displayedStandings.wdc.map((d, i) => (
                                       <div key={d.code} style={styles.standingRow}>
@@ -540,8 +570,8 @@ function Dashboard({ session, handleLogout }) {
                                   ))}
                               </div>
                           </div>
-                          <div style={styles.card}>
-                              <h4 style={styles.cardTitle}>WCC (LIVE)</h4>
+                          <div style={styles.scrollableCard}>
+                              <h4 style={styles.cardTitle}>WCC (PREDICTED)</h4>
                               <div style={styles.standingsList}>
                                   {displayedStandings.wcc.map((t, i) => (
                                       <div key={t.id} style={styles.standingRow}>
@@ -783,7 +813,7 @@ function Dashboard({ session, handleLogout }) {
 }
 
 const styles = {
-topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(30, 30, 47, 0.7)', backdropFilter: 'blur(10px)', padding: '12px 25px', borderRadius: '12px', marginBottom: '30px', border: `1px solid ${COLORS.border}` },
+    topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(30, 30, 47, 0.7)', backdropFilter: 'blur(10px)', padding: '12px 25px', borderRadius: '12px', marginBottom: '30px', border: `1px solid ${COLORS.border}` },
     logoutBtn: { background: 'transparent', color: COLORS.textDim, border: `1px solid ${COLORS.border}`, padding: '6px 18px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8em', transition: '0.2s', fontWeight: '600' },
     controlsBar: { fontSize:'0.8em', color: COLORS.textDim, background: COLORS.card, padding:'8px 15px', borderRadius:'6px', border: `1px solid ${COLORS.border}` },
     select: { padding: '12px', borderRadius: '8px', border: `1px solid ${COLORS.border}`, background: COLORS.card, color: 'white', fontWeight:'600', fontSize:'0.9em', cursor:'pointer', minWidth:'120px' },
@@ -803,29 +833,29 @@ topBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center'
     floatingWidget: { position: 'fixed', width: '500px', background: 'rgba(20, 20, 35, 0.95)', border: `2px solid ${COLORS.neon}`, borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', zIndex: 9999, backdropFilter: 'blur(10px)', animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' },
     floatingHeader: { padding: '12px 15px', background: 'rgba(255,255,255,0.05)', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'move', color: COLORS.neon, fontWeight: 'bold', fontSize: '0.9em', letterSpacing: '1px' },
     closeBtn: { background: 'transparent', border:'none', color:'#888', fontSize:'1.2em', cursor:'pointer', padding:'0 5px' },
-    
-    // --- CHAMPIONSHIP MODAL STYLES ---
+
+    // --- UPDATED MODAL & SCROLLING STYLES ---
     modalOverlay: { position: 'fixed', top:0, left:0, width:'100vw', height:'100vh', background: 'rgba(0,0,0,0.8)', backdropFilter:'blur(8px)', zIndex: 10000, display:'flex', justifyContent:'center', alignItems:'center', animation: 'fadeIn 0.2s ease' },
     modalContent: { width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', border: `1px solid ${COLORS.border}`, padding: '30px', display:'flex', flexDirection:'column' },
     modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'20px', flexShrink: 0 },
     
     // Standings (Static View)
     standingsContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', height: '100%', overflow:'hidden', minHeight: 0 },
-    scrollableCard: { background: COLORS.card, padding: '20px', borderRadius: '16px', border: `1px solid ${COLORS.border}`, overflowY: 'auto', maxHeight: '100%' }, // NEW: Makes WDC/WCC cards scrollable
+    scrollableCard: { background: COLORS.card, padding: '20px', borderRadius: '16px', border: `1px solid ${COLORS.border}`, overflowY: 'auto', maxHeight: '100%' }, 
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px', fontSize:'0.9em' },
     
     // Predictor View
     predictorContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '20px', height: '100%', minHeight:0 },
     
-    // NEW: Scrollable grid for predictions (Race/Sprint Inputs)
-    predGrid: { display: 'grid', gridTemplateColumns: '1fr', gap: '10px', overflowY: 'auto', maxHeight: '500px', paddingRight: '5px' }, 
+    // FIXED: Explicit scroll behaviour for the predictor columns
+    predGrid: { display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, paddingRight: '5px' }, 
     
     predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px' },
     predSelect: { background: 'transparent', border: 'none', color: 'white', flex: 1, fontFamily:'inherit', cursor:'pointer' },
     colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px' },
     
-    // Scrollable list for Live Standings (Right Side)
-    standingsList: { maxHeight: '100%', overflowY: 'auto' }, 
+    // FIXED: Live Standings scrolling
+    standingsList: { flex: 1, overflowY: 'auto', paddingRight: '5px' }, 
     standingRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: `1px solid ${COLORS.grid}`, fontSize:'0.9em' }
 };
 
