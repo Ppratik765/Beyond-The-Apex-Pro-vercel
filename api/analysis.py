@@ -374,16 +374,16 @@ def get_season_standings(year):
                 # ROBUST TEAM EXTRACTION:
                 # FastF1/Ergast can return constructors in various formats (e.g. nested list)
                 team_name = "N/A"
-                if 'constructorName' in d:
-                    team_name = d['constructorName']
-                elif 'Constructors' in d: # Nested list of dicts
+                if 'constructorNames' in d: # Often a list of strings
                     try:
-                        c = d['Constructors']
-                        if isinstance(c, list) and len(c) > 0:
-                            team_name = c[-1].get('name', 'N/A')
-                        elif isinstance(c, dict):
-                            team_name = c.get('name', 'N/A')
+                        c_names = d['constructorNames']
+                        if isinstance(c_names, list) and len(c_names) > 0:
+                            team_name = c_names[-1] # Use most recent team
+                        elif isinstance(c_names, str):
+                            team_name = c_names
                     except: pass
+                elif 'constructorName' in d:
+                    team_name = d['constructorName']
                 
                 wdc.append({
                     "position": int(d['position']),
@@ -395,9 +395,7 @@ def get_season_standings(year):
                 })
     except Exception as e:
         print(f"Main WDC Error: {e}")
-        # If Main WDC fails (e.g. 2026), we try fallback to get list of drivers with 0 pts
-        # This fallback usually won't work for future seasons if API has no data at all
-        # But we catch it silently to prevent crash
+        # Fallback likely won't work if API is down, but we catch gracefully
         pass
 
     # 2. Try fetching real WCC standings
@@ -435,11 +433,15 @@ def get_season_schedule(year):
             if hasattr(event, 'Session5Date') and not pd.isna(event['Session5Date']):
                 is_done = pd.to_datetime(event['Session5Date'], utc=True) < (current_time - datetime.timedelta(hours=2))
             
+            # FIXED: Lowercase check for sprint detection
+            fmt = str(event['EventFormat']).lower()
+            is_sprint = 'sprint' in fmt
+            
             races.append({
                 "round": int(event['RoundNumber']),
                 "name": event['EventName'],
                 "date": str(event['Session5Date']) if not pd.isna(event['Session5Date']) else "TBD",
-                "is_sprint": "Sprint" in event['EventFormat'],
+                "is_sprint": is_sprint,
                 "is_done": is_done,
                 "location": event['Location']
             })
