@@ -23,9 +23,26 @@ const COLORS = {
 };
 
 const DRIVER_COLORS = [
-  '#4363d8', '#e6194b', '#f58231', '#ffe119', '#911eb4', 
-  '#3cb44b', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', 
-  '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000'
+  '#4363d8', // blue
+  '#e6194b', // red
+  '#f58231', // orange
+  '#ffe119', // yellow
+  '#911eb4', // purple
+  '#3cb44b', // green
+  '#46f0f0', // cyan
+  '#f032e6', // magenta
+  '#bcf60c', // lime
+  '#fabebe', // pink
+  '#008080', // teal
+  '#e6beff', // lavender
+  '#9a6324', // brown
+  '#fffac8', // beige
+  '#800000', // maroon
+  '#aaffc3', // mint
+  '#808000', // olive
+  '#ffd8b1', // peach
+  '#000075', // navy
+  '#808080'  // gray
 ];
 
 const TYRE_COLORS = {
@@ -93,7 +110,7 @@ function Dashboard({ session, handleLogout }) {
   const [standings, setStandings] = useState({ wdc: [], wcc: [] });
   const [schedule, setSchedule] = useState([]);
   const [predictionMode, setPredictionMode] = useState(false);
-  const [predictions, setPredictions] = useState({}); // { roundId: { race: {pos: driver}, sprint: {pos: driver} } }
+  const [predictions, setPredictions] = useState({});
   const [currentPredictRound, setCurrentPredictRound] = useState(0);
 
   const widgetRef = useRef(null);
@@ -143,18 +160,6 @@ function Dashboard({ session, handleLogout }) {
       }
   }, [inputs.year, inputs.race, API_BASE]);
 
-  // --- NEW HELPER FOR EXCLUSIVE DROPDOWN ---
-  const getAvailableDrivers = (round, type, currentPos) => {
-      // Get all drivers currently picked for this specific round & type (race/sprint)
-      const picked = predictions[round]?.[type] || {};
-      const pickedCodes = Object.entries(picked)
-          .filter(([pos, code]) => parseInt(pos) !== currentPos && code) // Ignore self
-          .map(([_, code]) => code);
-      
-      // Return drivers who are NOT in the picked list
-      return standings.wdc.filter(d => !pickedCodes.includes(d.code));
-  };
-
   // --- CHAMPIONSHIP DATA ---
   const fetchChampionshipData = async () => {
       setIsChampModalOpen(true);
@@ -164,23 +169,19 @@ function Dashboard({ session, handleLogout }) {
           setStandings(sRes.data.data);
           setSchedule(schedRes.data.data);
           
-          // If current/future season, allow prediction
           const currentYear = new Date().getFullYear();
           if (parseInt(inputs.year) >= currentYear) {
-               // Find first upcoming race
                const nextRace = schedRes.data.data.find(r => !r.is_done);
-               if(nextRace) setCurrentPredictRound(nextRace.round - 1); // 0-indexed
+               if(nextRace) setCurrentPredictRound(nextRace.round - 1);
           }
       } catch (err) { console.error(err); }
   };
 
   // --- PREDICTOR LOGIC ---
   const getSimulatedStandings = () => {
-      // Deep clone current standings
       let simWdc = standings.wdc.map(d => ({...d}));
       let simWcc = standings.wcc.map(t => ({...t}));
 
-      // Apply points from predictions
       Object.keys(predictions).forEach(round => {
           const roundPred = predictions[round];
           if(roundPred.race) {
@@ -189,7 +190,7 @@ function Dashboard({ session, handleLogout }) {
                   const driver = simWdc.find(d => d.code === driverCode);
                   if(driver) {
                       driver.points += points;
-                      const team = simWcc.find(t => t.team === driver.team); // Simple match
+                      const team = simWcc.find(t => t.team === driver.team);
                       if(team) team.points += points;
                   }
               });
@@ -207,11 +208,8 @@ function Dashboard({ session, handleLogout }) {
           }
       });
 
-      // Sort
       simWdc.sort((a,b) => b.points - a.points);
       simWcc.sort((a,b) => b.points - a.points);
-      
-      // Re-assign positions
       simWdc.forEach((d,i) => d.position = i+1);
       simWcc.forEach((t,i) => t.position = i+1);
 
@@ -230,6 +228,14 @@ function Dashboard({ session, handleLogout }) {
               }
           }
       }));
+  };
+
+  const getAvailableDrivers = (round, type, currentPos) => {
+      const picked = predictions[round]?.[type] || {};
+      const pickedCodes = Object.entries(picked)
+          .filter(([pos, code]) => parseInt(pos) !== currentPos && code)
+          .map(([_, code]) => code);
+      return standings.wdc.filter(d => !pickedCodes.includes(d.code));
   };
 
   const isQualiSession = inputs.session && (inputs.session.includes('Qualifying') || inputs.session.includes('Sprint Qualifying'));
@@ -276,7 +282,6 @@ function Dashboard({ session, handleLogout }) {
     [deltaChartRef, speedChartRef, throttleChartRef, brakeChartRef, rpmChartRef, longGChartRef].forEach(ref => { if (ref.current) ref.current.resetZoom(); });
   };
 
-  // --- STABLE CHART DATA ---
   const getDatasets = (metric) => {
     if (!telemetryData) return [];
     return Object.keys(telemetryData.drivers).map((key, idx) => ({
@@ -336,7 +341,6 @@ function Dashboard({ session, handleLogout }) {
     }
   };
 
-  // --- STABLE CHART OPTIONS ---
   const telemetryOptions = useMemo(() => ({
     animation: false, maintainAspectRatio: false, responsive: true,
     interaction: { mode: 'index', intersect: false },
@@ -483,14 +487,14 @@ function Dashboard({ session, handleLogout }) {
 
                   {predictionMode && currentRace ? (
                       <div style={styles.predictorContainer}>
-                          {/* PREDICTOR WIDGET */}
-                          <div style={{...styles.card, gridColumn: 'span 2'}}>
-                              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
+                          {/* PREDICTOR WIDGET (Left Side - Race & Sprint) */}
+                          <div style={{...styles.card, gridColumn: 'span 2', display: 'flex', flexDirection: 'column', height: '100%'}}>
+                              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px', flexShrink: 0}}>
                                   <button onClick={prevRound} style={styles.miniBtn}>◀</button>
                                   <div style={{textAlign:'center'}}>
                                       <div style={{color: COLORS.neon, letterSpacing:'2px', fontSize:'0.8em'}}>ROUND {currentRace.round}</div>
                                       <h3 style={{margin:0}}>{currentRace.name}</h3>
-                                      <div style={{color: '#666', fontSize:'0.8em'}}>{new Date(currentRace.date).toLocaleDateString()}</div>
+                                      <div style={{color: '#666', fontSize:'0.8em'}}>{currentRace.date}</div>
                                   </div>
                                   <button onClick={nextRound} style={styles.miniBtn}>▶</button>
                               </div>
@@ -525,6 +529,7 @@ function Dashboard({ session, handleLogout }) {
                                         })}
                                       </div>
                                   </div>
+
                                   {/* SPRINT COLUMN (Conditional) */}
                                   {currentRace.is_sprint && (
                                       <div style={{flex:1}}>
@@ -557,26 +562,26 @@ function Dashboard({ session, handleLogout }) {
                               </div>
                           </div>
                           
-                          {/* LIVE STANDINGS WIDGETS */}
-                          <div style={styles.scrollableCard}>
+                          {/* LIVE STANDINGS WIDGETS (Right Side) */}
+                          <div style={{...styles.card, height: '100%', display: 'flex', flexDirection: 'column'}}>
                               <h4 style={styles.cardTitle}>WDC (PREDICTED)</h4>
                               <div style={styles.standingsList}>
                                   {displayedStandings.wdc.map((d, i) => (
                                       <div key={d.code} style={styles.standingRow}>
-                                          <span style={{color: COLORS.neon, width:'20px'}}>{i+1}</span>
-                                          <span style={{flex:1}}>{d.code}</span>
+                                          <span style={{color: COLORS.neon, width:'25px'}}>{i+1}</span>
+                                          <span style={{flex:1, textAlign:'left'}}>{d.code}</span>
                                           <b>{d.points}</b>
                                       </div>
                                   ))}
                               </div>
                           </div>
-                          <div style={styles.scrollableCard}>
+                          <div style={{...styles.card, height: '100%', display: 'flex', flexDirection: 'column'}}>
                               <h4 style={styles.cardTitle}>WCC (PREDICTED)</h4>
                               <div style={styles.standingsList}>
                                   {displayedStandings.wcc.map((t, i) => (
                                       <div key={t.id} style={styles.standingRow}>
-                                          <span style={{color: COLORS.neon, width:'20px'}}>{i+1}</span>
-                                          <span style={{flex:1}}>{t.team}</span>
+                                          <span style={{color: COLORS.neon, width:'25px'}}>{i+1}</span>
+                                          <span style={{flex:1, textAlign:'left'}}>{t.team}</span>
                                           <b>{t.points}</b>
                                       </div>
                                   ))}
@@ -584,6 +589,7 @@ function Dashboard({ session, handleLogout }) {
                           </div>
                       </div>
                   ) : (
+                      // ... (Static Standings Code - No Changes needed) ...
                       <div style={styles.standingsContainer}>
                           <div style={styles.scrollableCard}>
                               <h3 style={styles.cardTitle}>WORLD DRIVERS' CHAMPIONSHIP</h3>
@@ -634,7 +640,7 @@ function Dashboard({ session, handleLogout }) {
               </div>
           </div>
       )}
-
+      
       {/* TRACK MAP WIDGET */}
       {isMapExpanded && telemetryData && (
           <div ref={widgetRef} style={{ ...styles.floatingWidget, left: mapPosition.x, top: mapPosition.y, width: `${mapSize.width}px`, height: `${mapSize.height}px`, resize: 'both', overflow: 'hidden' }}>
@@ -695,7 +701,7 @@ function Dashboard({ session, handleLogout }) {
 
       {isRaceOrPractice && raceLapData && !loading && (
           <div className="dashboard-grid-race">
-               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '800px'}}>
+               <div style={{...styles.card, display: 'flex', flexDirection: 'column', height: '810px'}}>
                    <h4 style={styles.cardTitle}>LAP TIME DISTRIBUTION</h4>
                    <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
                        <Scatter ref={distributionChartRef} options={distributionOptions} data={raceDistributionData} />
@@ -833,8 +839,8 @@ const styles = {
     floatingWidget: { position: 'fixed', width: '500px', background: 'rgba(20, 20, 35, 0.95)', border: `2px solid ${COLORS.neon}`, borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', zIndex: 9999, backdropFilter: 'blur(10px)', animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' },
     floatingHeader: { padding: '12px 15px', background: 'rgba(255,255,255,0.05)', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'move', color: COLORS.neon, fontWeight: 'bold', fontSize: '0.9em', letterSpacing: '1px' },
     closeBtn: { background: 'transparent', border:'none', color:'#888', fontSize:'1.2em', cursor:'pointer', padding:'0 5px' },
-
-    // --- UPDATED MODAL & SCROLLING STYLES ---
+    
+    // --- CHAMPIONSHIP MODAL STYLES ---
     modalOverlay: { position: 'fixed', top:0, left:0, width:'100vw', height:'100vh', background: 'rgba(0,0,0,0.8)', backdropFilter:'blur(8px)', zIndex: 10000, display:'flex', justifyContent:'center', alignItems:'center', animation: 'fadeIn 0.2s ease' },
     modalContent: { width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', border: `1px solid ${COLORS.border}`, padding: '30px', display:'flex', flexDirection:'column' },
     modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'20px', flexShrink: 0 },
