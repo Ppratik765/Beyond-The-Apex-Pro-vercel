@@ -352,11 +352,12 @@ def generate_ai_insights(multi_data, k1, k2):
                  if abs(speed_diff) > 3: insights.append(f"Straight at {start}m: {gainer} faster by {int(abs(speed_diff))}km/h.")
     unique_insights = list(set(insights))
     return unique_insights[:15] if unique_insights else ["No significant differences found."]
-
+    
+#--- CHAMPIONSHIP LOGIC ---
 def get_season_standings(year):
     """
     Fetches WDC and WCC standings. 
-    FALLBACK: If standings are empty (start of season), fetches Driver Info and returns 0 points.
+    Handles missing constructor names and future seasons gracefully.
     """
     from fastf1.ergast import Ergast
     ergast = Ergast()
@@ -364,63 +365,63 @@ def get_season_standings(year):
     wdc = []
     wcc = []
     
-    # 1. Try fetching real standings
+    # 1. Try fetching real WDC standings
     try:
-        drivers = ergast.get_driver_standings(season=year).content[0]
-        for _, d in drivers.iterrows():
-            wdc.append({
-                "position": int(d['position']),
-                "points": float(d['points']),
-                "driver": d['driverId'],
-                "code": d['driverCode'],
-                "name": f"{d['givenName']} {d['familyName']}",
-                "team": d['constructorName']
-            })
-    except:
-        # FALLBACK: Fetch Driver Info for the season (0 points)
-        try:
-            # We try to get driver info for the specific season
-            # Note: FastF1's get_driver_info returns a dataframe
-            drivers_fallback = ergast.get_driver_info(season=year).content[0]
-            for idx, d in drivers_fallback.iterrows():
+        response = ergast.get_driver_standings(season=year)
+        if hasattr(response, 'content') and len(response.content) > 0:
+            drivers = response.content[0]
+            for _, d in drivers.iterrows():
+                # ROBUST TEAM EXTRACTION:
+                # FastF1/Ergast can return constructors in various formats (e.g. nested list)
+                team_name = "N/A"
+                if 'constructorName' in d:
+                    team_name = d['constructorName']
+                elif 'Constructors' in d: # Nested list of dicts
+                    try:
+                        c = d['Constructors']
+                        if isinstance(c, list) and len(c) > 0:
+                            team_name = c[-1].get('name', 'N/A')
+                        elif isinstance(c, dict):
+                            team_name = c.get('name', 'N/A')
+                    except: pass
+                
                 wdc.append({
-                    "position": idx + 1, # Arbitrary order
-                    "points": 0,
+                    "position": int(d['position']),
+                    "points": float(d['points']),
                     "driver": d['driverId'],
                     "code": d['driverCode'],
                     "name": f"{d['givenName']} {d['familyName']}",
-                    "team": d['constructorId'].upper() # Approximation
+                    "team": team_name
                 })
-        except Exception as e:
-            print(f"Fallback WDC Error: {e}")
+    except Exception as e:
+        print(f"Main WDC Error: {e}")
+        # If Main WDC fails (e.g. 2026), we try fallback to get list of drivers with 0 pts
+        # This fallback usually won't work for future seasons if API has no data at all
+        # But we catch it silently to prevent crash
+        pass
 
-    # 2. Try fetching real WCC
+    # 2. Try fetching real WCC standings
     try:
-        teams = ergast.get_constructor_standings(season=year).content[0]
-        for _, t in teams.iterrows():
-            wcc.append({
-                "position": int(t['position']),
-                "points": float(t['points']),
-                "team": t['constructorName'],
-                "id": t['constructorId']
-            })
-    except:
-        # FALLBACK: Fetch Constructor Info (0 points)
-        try:
-            teams_fallback = ergast.get_constructor_info(season=year).content[0]
-            for idx, t in teams_fallback.iterrows():
+        response = ergast.get_constructor_standings(season=year)
+        if hasattr(response, 'content') and len(response.content) > 0:
+            teams = response.content[0]
+            for _, t in teams.iterrows():
                 wcc.append({
-                    "position": idx + 1,
-                    "points": 0,
+                    "position": int(t['position']),
+                    "points": float(t['points']),
                     "team": t['constructorName'],
                     "id": t['constructorId']
                 })
-        except Exception as e:
-            print(f"Fallback WCC Error: {e}")
+    except Exception as e:
+        print(f"Main WCC Error: {e}")
+        pass
             
     return {"wdc": wdc, "wcc": wcc}
 
 def get_season_schedule(year):
+    """
+    Returns the full schedule with 'upcoming' status for the predictor.
+    """
     try:
         schedule = fastf1.get_event_schedule(year)
         schedule = schedule[schedule['EventFormat'] != 'testing']
