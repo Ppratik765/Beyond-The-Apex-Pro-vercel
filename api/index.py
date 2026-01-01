@@ -41,6 +41,16 @@ def get_race_laps_endpoint(year: int, race: str, session: str, drivers: str):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.get("/standings")
+def season_standings(year: int):
+    data = analysis.get_season_standings(year)
+    return {"status": "success", "data": data}
+
+@app.get("/schedule")
+def season_schedule(year: int):
+    data = analysis.get_season_schedule(year)
+    return {"status": "success", "data": data}
+
 @app.get("/analyze")
 def analyze_drivers(year: int, race: str, session: str, drivers: str, specific_laps: str = Query(None)):
     driver_list = [d.strip().upper() for d in drivers.split(',')]
@@ -62,3 +72,4 @@ def analyze_drivers(year: int, race: str, session: str, drivers: str, specific_l
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
