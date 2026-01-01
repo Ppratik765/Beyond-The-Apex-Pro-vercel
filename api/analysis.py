@@ -5,30 +5,16 @@ import os
 import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
-
 # Updated Cache Logic for Persistent Storage
-
 if os.environ.get('ZEABUR_SERVICE_ID') or os.path.exists("/app/api/cache"):
-
     # Use the mounted volume path
-
     CACHE_DIR = "/app/api/cache"
-
 else:
-
     # Fallback for local dev
-
     CACHE_DIR = os.path.join(BASE_DIR, 'cache')
 
-
-
 if not os.path.exists(CACHE_DIR):
-
     os.makedirs(CACHE_DIR, exist_ok=True)
-
-
 
 fastf1.Cache.enable_cache(CACHE_DIR)
 
@@ -37,27 +23,33 @@ def get_available_years():
     current_year = datetime.date.today().year
     return list(range(2021, current_year + 1))
 
+
 def get_races_for_year(year):
     try:
+        year = int(year)
         schedule = fastf1.get_event_schedule(year)
-        races = schedule[schedule['EventFormat'] != 'testing']['EventName'].unique().tolist()
+        
+        # Filter out testing events
+        schedule = schedule[schedule['EventFormat'] != 'testing']
+        
+        # If looking at the current year, filter for completed races
+        current_time = datetime.datetime.now(datetime.timezone.utc)
+        current_year = datetime.date.today().year
+        
+        if year == current_year:
+            # We check the date of the last session (Session5Date)
+            # If Session5Date is in the past, the race weekend is likely over.
+            # We add a small buffer (e.g., 2 hours) to ensure data is likely being processed.
+            schedule = schedule[
+                pd.to_datetime(schedule['Session5Date'], utc=True) < (current_time - datetime.timedelta(hours=2))
+            ]
+            
+        races = schedule['EventName'].unique().tolist()
         return races
-    except:
+    except Exception as e:
+        print(f"Error fetching races: {e}")
         return []
-
-def get_sessions_for_race(year, race_name):
-    try:
-        schedule = fastf1.get_event_schedule(year)
-        event = schedule[schedule['EventName'] == race_name].iloc[0]
-        sessions = []
-        for i in range(1, 6):
-            session_key = f'Session{i}'
-            if hasattr(event, session_key) and not pd.isna(event[session_key]):
-                sessions.append(event[session_key])
-        return sessions
-    except:
-        return []
-
+        
 # --- CORE ANALYSIS ---
 
 def get_race_lap_distribution(year, race, session_type, driver_list):
@@ -382,3 +374,4 @@ def generate_ai_insights(multi_data, k1, k2):
     unique_insights = list(set(insights))
 
     return unique_insights[:15] if unique_insights else ["No significant differences found."]
+
