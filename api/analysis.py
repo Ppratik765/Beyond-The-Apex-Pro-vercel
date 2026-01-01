@@ -389,3 +389,81 @@ def generate_ai_insights(multi_data, k1, k2):
     return unique_insights[:15] if unique_insights else ["No significant differences found."]
 
 
+def get_season_standings(year):
+    """
+    Fetches WDC and WCC standings. 
+    If the season hasn't started (e.g., 2026), returns 0 points for known drivers/teams.
+    """
+    try:
+        from fastf1.ergast import Ergast
+        ergast = Ergast()
+        
+        # Get Drivers
+        wdc = []
+        try:
+            drivers = ergast.get_driver_standings(season=year).content[0]
+            for _, d in drivers.iterrows():
+                wdc.append({
+                    "position": int(d['position']),
+                    "points": float(d['points']),
+                    "driver": d['driverId'], # e.g. 'verstappen'
+                    "code": d['driverCode'], # e.g. 'VER'
+                    "name": f"{d['givenName']} {d['familyName']}",
+                    "team": d['constructorName']
+                })
+        except:
+            # Fallback for future seasons (like 2026) where no standings exist yet
+            # We try to get the driver list from the first round if available, else return empty
+            pass
+
+        # Get Constructors
+        wcc = []
+        try:
+            teams = ergast.get_constructor_standings(season=year).content[0]
+            for _, t in teams.iterrows():
+                wcc.append({
+                    "position": int(t['position']),
+                    "points": float(t['points']),
+                    "team": t['constructorName'],
+                    "id": t['constructorId']
+                })
+        except:
+            pass
+            
+        return {"wdc": wdc, "wcc": wcc}
+    except Exception as e:
+        print(f"Standings Error: {e}")
+        return {"wdc": [], "wcc": []}
+
+def get_season_schedule(year):
+    """
+    Returns the full schedule with 'upcoming' status for the predictor.
+    """
+    try:
+        schedule = fastf1.get_event_schedule(year)
+        schedule = schedule[schedule['EventFormat'] != 'testing']
+        
+        current_time = datetime.datetime.now(datetime.timezone.utc)
+        races = []
+        
+        for _, event in schedule.iterrows():
+            # Check if event has happened (approx 2 hours after session 5)
+            # Safe check for missing dates
+            if pd.isna(event['Session5Date']):
+                is_done = False
+            else:
+                is_done = pd.to_datetime(event['Session5Date'], utc=True) < (current_time - datetime.timedelta(hours=2))
+            
+            races.append({
+                "round": int(event['RoundNumber']),
+                "name": event['EventName'],
+                "date": str(event['Session5Date']),
+                "is_sprint": "Sprint" in event['EventFormat'],
+                "is_done": is_done,
+                "location": event['Location']
+            })
+            
+        return races
+    except Exception as e:
+        print(f"Schedule Error: {e}")
+        return []
