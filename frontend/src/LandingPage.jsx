@@ -161,8 +161,8 @@ function LandingPage({ onLoginSuccess }) {
               Data at <span className="neon-text">300km/h</span>
             </motion.h1>
             <motion.p variants={fadeInUp}>
-              Analyze Formula 1 telemetry like a Race Engineer. 
-              Uncover the gaps, visualize strategies, and master the track.
+              Analyse Formula 1 telemetry like a Race Engineer. 
+              Uncover the gaps, visualise strategies, and master the track.
             </motion.p>
           </motion.div>
           
@@ -248,9 +248,9 @@ function LandingPage({ onLoginSuccess }) {
         </motion.h2>
         <div className="cards-wrapper">
             {[ 
-              { title: "1. Select Race", desc: "Access the full archive from 2021.", delay: 0 },
-              { title: "2. Choose Drivers", desc: "Head-to-head comparison between any drivers.", delay: 0.2 },
-              { title: "3. Analyse Gaps", desc: "Pinpoint braking points and throttle traces.", delay: 0.4 }
+              { title: "1. Select Race", desc: "Access the full race archive from 2016.", delay: 0 },
+              { title: "2. Choose Drivers", desc: "Head-to-head comparison between any drivers in any session.", delay: 0.2 },
+              { title: "3. Analyse Gaps", desc: "Pinpoint braking points and throttle traces. Uncover time gained or lost", delay: 0.4 }
             ].map((step, i) => (
                 <motion.div 
                     key={i}
