@@ -3,6 +3,10 @@ import { supabase } from './supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import './index.css';
 
+// --- ASSETS ---
+// ⚠️ Make sure to put your video file in the 'src/assets' folder
+import maxVideo from './assets/max_verstappen.mp4'; 
+
 // --- ANIMATION VARIANTS ---
 const fadeInUp = {
   hidden: { opacity: 0, y: 40 },
@@ -84,6 +88,47 @@ function LandingPage({ onLoginSuccess }) {
 
   return (
     <div className="landing-container">
+      
+      {/* --- BACKGROUND VIDEO START --- */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: -2,
+        overflow: 'hidden'
+      }}>
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline 
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            position: 'absolute',
+            top: 0,
+            left: 0
+          }}
+        >
+          <source src={maxVideo} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        {/* Dark Overlay to ensure text readability */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)', // Adjust opacity (0.6) to make video darker/lighter
+          zIndex: 1
+        }}></div>
+      </div>
+      {/* --- BACKGROUND VIDEO END --- */}
+
       {/* BACKGROUND EFFECTS */}
       <div className="bg-glow"></div>
 
