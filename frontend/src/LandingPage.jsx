@@ -44,7 +44,6 @@ function LandingPage({ onLoginSuccess }) {
   };
 
   const handleAppleLogin = async () => {
-    // Apple login requires a paid Developer Account and verified domain.
     alert("Apple Sign-In is coming in the Professional tier update!");
   };
 
@@ -54,22 +53,18 @@ function LandingPage({ onLoginSuccess }) {
     setMessage(null);
 
     if (authMode === 'signup') {
-      // 1. Sign Up Logic (With Name)
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: { full_name: fullName } // Saving the name in metadata
-        }
+        options: { data: { full_name: fullName } }
       });
       if (error) {
         setMessage({ type: 'error', text: error.message });
       } else {
         setMessage({ type: 'success', text: "✅ Account created! Check your email to verify." });
-        setAuthMode('login'); // Switch back to login view
+        setAuthMode('login');
       }
     } else {
-      // 2. Login Logic
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -77,17 +72,14 @@ function LandingPage({ onLoginSuccess }) {
       if (error) {
         setMessage({ type: 'error', text: error.message });
       } else {
-        // App.jsx detects the session change automatically, but we can call parent too
         if(onLoginSuccess) onLoginSuccess(data.session);
       }
     }
     setLoading(false);
   };
 
-  // --- UI COMPONENTS ---
-
   return (
-    <div className="landing-container">
+    <div className="landing-container" style={{background: 'transparent'}}>
       
       {/* --- BACKGROUND VIDEO START --- */}
       <div style={{
@@ -116,14 +108,14 @@ function LandingPage({ onLoginSuccess }) {
           <source src={maxVideo} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        {/* Dark Overlay to ensure text readability */}
+        {/* Dark Overlay - Adjust opacity (0.7) to control video brightness */}
         <div style={{
           position: 'absolute',
           top: 0,
           left: 0,
           width: '100%',
           height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.6)', // Adjust opacity (0.6) to make video darker/lighter
+          backgroundColor: 'rgba(10, 10, 18, 0.75)', 
           zIndex: 1
         }}></div>
       </div>
@@ -137,7 +129,7 @@ function LandingPage({ onLoginSuccess }) {
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="navbar"
+        className="navbar glass-effect" // Added glass-effect class
       >
         <div className="logo">🏎️ Beyond The Apex</div>
         <div className="nav-links">
@@ -149,7 +141,7 @@ function LandingPage({ onLoginSuccess }) {
       </motion.nav>
 
       {/* HERO SECTION */}
-      <header className="hero">
+      <header className="hero" style={{background: 'transparent'}}>
         <div className="hero-content">
           <motion.div 
             initial="hidden" 
@@ -171,7 +163,7 @@ function LandingPage({ onLoginSuccess }) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4, duration: 0.5 }}
-            className="auth-box glass-panel"
+            className="auth-box glass-effect" // Added glass-effect class
           >
             <h3>{authMode === 'login' ? 'Welcome Back, Driver' : 'Join the Grid'}</h3>
             
@@ -238,7 +230,7 @@ function LandingPage({ onLoginSuccess }) {
       </header>
 
       {/* FEATURES SCROLL SECTION */}
-      <section id="features" className="instructions">
+      <section id="features" className="instructions" style={{background: 'transparent'}}>
         <motion.h2 
           initial={{ opacity: 0 }} 
           whileInView={{ opacity: 1 }} 
@@ -254,7 +246,7 @@ function LandingPage({ onLoginSuccess }) {
             ].map((step, i) => (
                 <motion.div 
                     key={i}
-                    className="step-card"
+                    className="step-card glass-effect" // Added glass-effect class
                     initial={{ opacity: 0, x: -50 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
@@ -268,13 +260,13 @@ function LandingPage({ onLoginSuccess }) {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" className="pricing-section">
+      <section id="pricing" className="pricing-section" style={{background: 'transparent'}}>
         <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>Plans</motion.h2>
         <div className="pricing-grid">
             {['Rookie', 'Hobbyist', 'Professional'].map((plan, i) => (
                 <motion.div 
                     key={plan}
-                    className={`price-card ${plan === 'Hobbyist' ? 'featured' : ''}`}
+                    className={`price-card glass-effect ${plan === 'Hobbyist' ? 'featured' : ''}`} // Added glass-effect
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -294,7 +286,7 @@ function LandingPage({ onLoginSuccess }) {
       </section>
 
       {/* CONTACT */}
-      <section id="contact" className="contact-section">
+      <section id="contact" className="contact-section" style={{background: 'transparent'}}>
         <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
             <h2>Contact Race Control</h2>
             <a href="mailto:support@beyondtheapex.com" className="email-link">support@beyondtheapex.com</a>
@@ -303,5 +295,38 @@ function LandingPage({ onLoginSuccess }) {
     </div>
   );
 }
+
+// --- INJECT GLASSMORPHISM STYLES ---
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+  /* Force Transparency on major containers so video shows through */
+  .landing-container, 
+  .hero, 
+  .instructions, 
+  .pricing-section, 
+  .contact-section {
+      background-color: transparent !important;
+      background: transparent !important;
+  }
+
+  /* Glassmorphism Effect for Cards and Boxes */
+  .glass-effect, 
+  .navbar, 
+  .auth-box, 
+  .step-card, 
+  .price-card {
+      background: rgba(20, 20, 35, 0.6) !important; /* Semi-transparent dark blue/grey */
+      backdrop-filter: blur(12px) !important;       /* The blur magic */
+      -webkit-backdrop-filter: blur(12px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+  }
+
+  /* Ensure text remains readable */
+  h1, h2, h3, p, li, .price, .logo {
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5); 
+  }
+`;
+document.head.appendChild(styleSheet);
 
 export default LandingPage;
