@@ -9,18 +9,21 @@
 
 body {
   margin: 0;
-  background-color: var(--dark-bg);
+  /* UPDATED: Set to transparent so video shows through */
+  background-color: transparent; 
   color: var(--text-primary);
-  font-family: 'Titillium Web', sans-serif, system-ui; /* F1-style font */
-  overflow-x: hidden; /* Prevent horizontal scroll */
+  font-family: 'Titillium Web', sans-serif, system-ui;
+  overflow-x: hidden;
 }
 
 /* --- BACKGROUND GLOW --- */
 .bg-glow {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: radial-gradient(circle at 50% 10%, #2a2a45 0%, #15151e 60%);
+  /* UPDATED: Used RGBA for transparency so video is visible through the glow */
+  background: radial-gradient(circle at 50% 10%, rgba(42, 42, 69, 0.5) 0%, rgba(21, 21, 30, 0.8) 60%);
   z-index: -1;
+  pointer-events: none; /* Ensure clicks pass through */
 }
 
 /* --- NAVBAR --- */
@@ -29,13 +32,13 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 3rem;
-  background: rgba(10, 10, 20, 0.5);
+  background: rgba(10, 10, 20, 0.6); /* Slightly darker for readability */
   backdrop-filter: blur(10px);
   position: fixed;
   width: 100%;
   top: 0;
   z-index: 1000;
-  box-sizing: border-box; /* Ensures padding doesn't break width */
+  box-sizing: border-box;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -79,24 +82,25 @@ body {
 
 /* --- HERO SECTION --- */
 .hero {
-  min-height: 100vh; /* Full screen height */
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-top: 80px; /* Space for fixed navbar */
+  padding-top: 80px;
   position: relative;
+  /* No background here, letting the video shine */
 }
 
 .hero-content {
   display: flex;
-  flex-direction: row; /* Side by side layout */
+  flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 50px;
   max-width: 1200px;
   width: 100%;
   padding: 20px;
-  flex-wrap: wrap; /* Wraps on mobile */
+  flex-wrap: wrap;
 }
 
 .hero-text {
@@ -118,6 +122,8 @@ body {
   color: var(--text-secondary);
   line-height: 1.6;
   max-width: 500px;
+  /* Added text shadow for better readability over video */
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
 .neon-text {
@@ -127,8 +133,8 @@ body {
 
 /* --- AUTH BOX --- */
 .auth-box {
-  flex: 0 0 350px; /* Fixed width */
-  background: rgba(20, 20, 35, 0.6);
+  flex: 0 0 350px;
+  background: rgba(20, 20, 35, 0.75); /* Increased opacity slightly */
   backdrop-filter: blur(12px);
   padding: 2rem;
   border-radius: 12px;
@@ -142,11 +148,11 @@ body {
   width: 100%;
   padding: 12px;
   margin-bottom: 12px;
-  background: rgba(0,0,0,0.3);
+  background: rgba(0,0,0,0.5); /* Darker input background */
   border: 1px solid #444;
   color: white;
   border-radius: 6px;
-  box-sizing: border-box; /* Fixes padding width issues */
+  box-sizing: border-box;
 }
 .auth-box input:focus { outline: none; border-color: var(--neon-blue); }
 
@@ -200,7 +206,7 @@ body {
   transition: background 0.2s;
 }
 .btn-social:hover { background: #e0e0e0; }
-.btn-social:nth-child(2) { /* Apple Button */
+.btn-social:nth-child(2) {
   background: black; color: white; border: 1px solid #333;
 }
 .btn-social:nth-child(2):hover { background: #222; }
@@ -209,7 +215,10 @@ body {
 .instructions { 
   padding: 6rem 2rem; 
   text-align: center; 
-  background: #12121a;
+  /* UPDATED: Semi-transparent background with blur */
+  background: rgba(18, 18, 26, 0.85);
+  backdrop-filter: blur(10px); 
+  border-top: 1px solid rgba(255,255,255,0.05);
 }
 .instructions h2 { font-size: 2.5rem; margin-bottom: 3rem; }
 
@@ -223,7 +232,7 @@ body {
 .step-card {
   width: 280px;
   padding: 30px;
-  background: rgba(30, 30, 40, 0.5);
+  background: rgba(30, 30, 40, 0.7); /* More opaque than before */
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
@@ -235,11 +244,16 @@ body {
 .step-card p { color: var(--text-secondary); line-height: 1.5; }
 
 /* --- PRICING SECTION --- */
-.pricing-section { padding: 6rem 2rem; text-align: center; }
+.pricing-section { 
+  padding: 6rem 2rem; 
+  text-align: center;
+  /* UPDATED: Added a very light tint so text pops against video */
+  background: rgba(0, 0, 0, 0.4); 
+}
 .pricing-grid { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-top: 3rem; }
 
 .price-card {
-  background: rgba(30, 30, 40, 0.6);
+  background: rgba(30, 30, 40, 0.85); /* Increased opacity */
   backdrop-filter: blur(8px);
   padding: 2.5rem;
   border-radius: 16px;
@@ -252,7 +266,7 @@ body {
 
 .price-card.featured { 
   border: 1px solid var(--neon-blue); 
-  background: rgba(40, 40, 60, 0.5); 
+  background: rgba(40, 40, 60, 0.9); 
   transform: scale(1.05);
 }
 .price-card.featured:hover { transform: scale(1.05) translateY(-10px); }
@@ -278,8 +292,9 @@ body {
 .contact-section { 
   padding: 4rem 2rem; 
   text-align: center; 
-  border-top: 1px solid #333;
-  background: #0e0e15;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  /* UPDATED: Dark semi-transparent background */
+  background: rgba(14, 14, 21, 0.95); 
 }
 .email-link { 
   color: var(--neon-blue); 
@@ -308,15 +323,18 @@ body {
   justify-content: center;
   font-size: 1.5rem;
   color: var(--neon-blue);
-  background: var(--dark-bg);
+  /* Ensure loading screen covers the video if needed */
+  background: var(--dark-bg); 
 }
 
 /* --- DASHBOARD STYLES --- */
+/* (Added background color to container so dashboard isn't transparent) */
 .dashboard-container {
   min-height: 100vh;
   padding: 2rem 3rem;
   position: relative;
   z-index: 1;
+  background-color: var(--dark-bg); /* Dashboard should remain solid */
 }
 
 .dashboard-header {
@@ -392,7 +410,7 @@ body {
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 1px;
-  flex-grow: 1; /* Makes button fill space */
+  flex-grow: 1;
   max-width: 250px;
   transition: transform 0.2s;
 }
@@ -458,9 +476,7 @@ body {
   font-weight: bold;
 }
 
-/* --- RESPONSIVE LAYOUT CLASSES (New) --- */
-
-/* 1. Dashboard Layouts */
+/* --- RESPONSIVE LAYOUT CLASSES --- */
 .dashboard-grid-race {
   display: grid;
   grid-template-columns: 7fr 2fr;
@@ -483,34 +499,27 @@ body {
   align-items: center;
 }
 
-/* 2. Chart Grids (RPM + Long G) */
 .charts-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
 
-/* --- MOBILE & TABLET OVERRIDES (@media) --- */
-
+/* --- MEDIA QUERIES --- */
 @media (max-width: 1024px) {
-  /* Tablet: Make text slightly smaller, adjust paddings */
   .hero h1 { font-size: 3rem; }
-  .price-card { width: 45%; } /* 2 cards per row */
+  .price-card { width: 45%; }
 }
 
 @media (max-width: 768px) {
-  /* --- GLOBAL MOBILE FIXES --- */
-  
-  /* Stack Dashboard Grids */
   .dashboard-grid-race, 
   .dashboard-grid-telemetry,
   .charts-split {
-    grid-template-columns: 1fr !important; /* Force single column */
+    grid-template-columns: 1fr !important;
     display: flex;
     flex-direction: column;
   }
 
-  /* Adjust Navbar */
   .navbar {
     padding: 1rem;
     flex-direction: column;
@@ -519,25 +528,21 @@ body {
   .nav-links { margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
   .nav-links a { margin: 0; }
   
-  /* Landing Page Hero */
-  .hero { padding-top: 140px; } /* More space for stacked navbar */
+  .hero { padding-top: 140px; }
   .hero-content { flex-direction: column; text-align: center; }
   .hero-text { margin-bottom: 30px; }
-  .auth-box { width: 100%; max-width: 100%; } /* Full width on phone */
+  .auth-box { width: 100%; max-width: 100%; }
   
-  /* Pricing & Steps */
-  .price-card, .step-card { width: 100%; } /* Full width cards */
+  .price-card, .step-card { width: 100%; }
   
-  /* Dashboard Controls */
   .dashboard-controls { flex-direction: column; align-items: stretch; }
   .dashboard-controls select, 
   .dashboard-controls input, 
   .dashboard-controls button {
-    width: 100% !important; /* Full width inputs for easy tapping */
+    width: 100% !important;
     min-width: 0 !important;
   }
 
-  /* Hide/Adjust decorative elements */
-  .bg-glow { opacity: 0.5; } /* Save battery/performance */
+  /* Don't hide glow entirely, just reduce it */
+  .bg-glow { opacity: 0.3; } 
 }
-
