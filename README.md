@@ -1,5 +1,5 @@
 # 🏎️ Beyond The Apex PRO
-Beyond The Apex PRO is an F1 telemetry and race strategy platform built on FastF1 for enthusiasts and data analysts. It features two modes: a Race Engineer Dashboard for long-run pace, tyre strategy and stint history, and a Telemetry Lab for analysing braking, throttle and corner speeds. An AI insights engine highlights where drivers gain time. It is a full-stack web application designed to visualise and analyse Formula 1 telemetry data. It bridges the gap between raw data and actionable race strategy insights, offering features like lap time distribution, tyre stint visualisation, and AI-generated driver comparisons.
+**Beyond The Apex** is a professional-grade Formula 1 telemetry analysis and visualisation platform. It allows users to dive deep into race data, compare driver performance, analyse tyre strategies, and predict championship outcomes using real-time and historical data. It features two modes: a Race Engineer Dashboard for long-run pace, tyre strategy and stint history, and a Telemetry Lab for analysing braking, throttle and corner speeds. An AI insights engine highlights where drivers gain time. It is a full-stack web application designed to visualise and analyse Formula 1 telemetry data.
 
 ## Website Link
 
@@ -11,15 +11,15 @@ https://beyond-the-apex-pro.vercel.app
 <img width="1898" height="869" alt="image" src="https://github.com/user-attachments/assets/4f963b48-7184-447e-a44b-edab7c60057c" />
 <img width="1893" height="879" alt="image" src="https://github.com/user-attachments/assets/f1f991c6-8808-4611-a330-7663c2799b03" />
 
-## ✨ Features
+## Features
 
-### 🏁 Race Strategy & Overview
+### Race Strategy & Overview
 * **Lap Time Distribution:** Jittered scatter plots to visualise pace consistency and outliers across the grid.
 * **Tyre Strategy Visualisation:** a "Pit Wall" style bar chart showing tyre compounds (Soft, Medium, Hard, Inter, Wet), stint lengths, and pit stop sequences.
 * **Session Context:** Automatically detects and displays the Race Winner, Sprint Winner, or Practice Session leader.
-* **Weather Widget:** Real-time (historical) track temp, air temp, humidity, and rainfall status.
-
-### 📊 Deep Dive Telemetry
+* **Degradation Insights:** AI-powered analysis of tyre wear and lap time degradation trends.
+  
+### Deep Dive Telemetry
 * **Multi-Driver Comparison:** Select specific laps to compare trace data.
 * **Telemetry Channels:**
     * Speed (km/h)
@@ -28,10 +28,25 @@ https://beyond-the-apex-pro.vercel.app
     * Delta to Reference (sec)
     * RPM & Gear Usage
     * Longitudinal G-Force
-* **Sector Analysis:** Color-coded sector times (Purple/Green/Yellow) relative to the session best.
+* **Corner Analysis:** Interactive charts with zoom/pan capabilities to analyse braking points and cornering speeds.
+* **Track Map:** Dynamic 3D-style track map with sector segmentation and driver position markers.
+* **Sector Analysis:** Colour-coded sector times (Purple/Green/Yellow) relative to the session best.
+
+### Championship Hub
+* **Live Standings:** Real-time WDC (Driver) and WCC (Constructor) rankings.
+* **Archive Access:** Browse historical standings from previous seasons (2021-Present).
+* **Interactive Predictor:** * Predict race and sprint outcomes for the current season.
+    * Dynamic point calculation updates the "Predicted Standings" in real-time.
+    * Exclusive dropdown logic prevents duplicate driver selection.
+ 
+### 🎨 Modern UI/UX
+* **Cinematic Landing Page:** Immersive video background with glassmorphism design.
+* **Responsive Dashboard:** Optimised for desktop, tablet, and mobile devices.
+* **Animations:** Smooth transitions using Framer Motion (Morphing widgets, fade-ins).
+* **Dark Mode:** Sleek, high-contrast dark theme optimised for data visualisation.
 
 ### 🤖 AI Race Engineer
-* **Automated Insights:** The backend analyzes telemetry deltas to generate natural language explanations (e.g., *"Verstappen brakes later into Turn 1 gains 0.15s"*).
+* **Automated Insights:** The backend analyses telemetry deltas to generate natural language explanations (e.g., *"Verstappen brakes later into Turn 1 gains 0.15s"*).
 
 ### 🌦️ Live Conditions
 - Real-time Track Temp, Air Temp, Humidity, and Rain status.
@@ -43,16 +58,17 @@ https://beyond-the-apex-pro.vercel.app
 This project uses a **Hybrid Deployment Strategy** to handle heavy data processing while maintaining a fast, responsive UI.
 
 ### Frontend (Deployed on Vercel)
-* **Framework:** React 18 (Vite)
-* **Styling:** CSS / Tailwind
-* **Visualization:** Chart.js & React-Chartjs-2
-* **Networking:** Axios
-
+* **Framework:** React (Vite)
+* **Styling:** CSS3 (Variables, Glassmorphism, Flexbox/Grid)
+* **Visualization:** Chart.js, React-Chartjs-2, Chartjs-Plugin-Zoom
+* **Animation:** Framer Motion
+* **Auth:** Supabase Auth Helpers
+  
 ### Backend (Deployed on Zeabur)
-* **Framework:** FastAPI (Python 3.9)
-* **Data Source:** [FastF1](https://github.com/theOehrly/Fast-F1) (Official F1 Live Timing Client wrapper)
-* **Data Processing:** Pandas, NumPy, SciPy
-* **Server:** Uvicorn (ASGI)
+* **Framework:** Python FastAPI
+* **Data Processing:** Pandas, NumPy
+* **F1 Data Source:** FastF1 (Ergast API integration)
+* **Caching:** File-based caching for optimal performance
 
 ### ☁️ Deployment Strategy
 Due to the large size of data science libraries (Pandas/NumPy ~300MB), the backend could not be hosted on Vercel Serverless functions.
@@ -61,23 +77,23 @@ Due to the large size of data science libraries (Pandas/NumPy ~300MB), the backe
 
 ---
 
-## 🛠️ Local Installation Guide
-
+## Installation & Setup
 Follow these steps to run the project on your machine.
 
 ### Prerequisites
 * Node.js (v16+)
-* Python (v3.8+)
-* Git
+* Python (v3.9+)
+* Supabase Account (for Authentication)
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/Ppratik765/Beyond-The-Apex-Pro-vercel.git
-cd Beyond-The-Apex-Pro-vercel
+git clone [https://github.com/yourusername/beyond-the-apex.git](https://github.com/yourusername/beyond-the-apex.git)
+cd beyond-the-apex
 ```
 
 ### 2. Backend Setup
-The backend processes the F1 data.
+Navigate to the backend directory and set up the Python environment.
+
 ```bash
 
 # Navigate to backend folder
@@ -121,14 +137,11 @@ Note: In frontend/src/App.jsx, ensure API_BASE points to http://localhost:8000 w
 ### 🗺️ Roadmap & Future Plans
 I am actively working to turn this into a comprehensive F1 platform.
 
-* Authentication: User accounts to save favourite telemetry comparisons.
-* Pro Tier: Paywall implementation for AI Insights and advanced G-Force analysis.
-* Real-time Data: Integration with live timing feeds (pending API availability).
-* 2026 Support: Automatic scaling for future seasons via dynamic calendar fetching
-* Add WDC (Driver) & WCC (Constructor) Championship Standings tables.
-* Authentication (Sign Up/Login).
 * "My Garage": Save favourite drivers and teams for quick access
-* AI Chatbot Race Engineer.
+* Real-time WebSocket Data: Live telemetry streaming during race sessions.
+* Social Sharing: Share your predictions and lap analysis images.
+* Setup Comparison: Compare car setups (Wing angles, suspension) where data permits.
+* Apple Sign-In: Integration for iOS users
 
 ### ⚠️ Known Issues / Limitations
 First Load Speed: Since the backend is hosted on a free-tier instance, it may "sleep" after inactivity. The first request might take 10-30 seconds to wake up. Subsequent requests will be fast.
@@ -139,3 +152,4 @@ Data Availability: The Data is retrieved from the FastF1 API. Detailed telemetry
 Data provided by the excellent FastF1 library.
 
 This project is for educational and non-commercial purposes. F1 data rights belong to Formula One World Championship Limited.
+<p align="center"> Built with ❤️ for F1 Fans. </p>
