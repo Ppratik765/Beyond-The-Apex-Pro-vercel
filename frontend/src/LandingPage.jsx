@@ -297,7 +297,7 @@ function LandingPage({ onLoginSuccess }) {
       <section id="contact" className="contact-section">
         <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
             <h2>Contact Race Control</h2>
-            <a href="mailto:support@beyondtheapex.com" className="email-link">support@beyondtheapex.com</a>
+            <a href="mailto:support@beyondtheapex.com" className="email-link">priyanshupratik07@gmail.com</a>
         </motion.div>
       </section>
     </div>
