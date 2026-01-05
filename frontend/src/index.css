@@ -7,7 +7,7 @@
   --neon-blue: #00f3ff;
 }
 
-/* --- GLOBAL RESET (Fixes Horizontal Scroll) --- */
+/* --- GLOBAL RESET (Fixes Horizontal Scroll) -- */
 *, *::before, *::after {
   box-sizing: border-box; /* Crucial: Ensures padding doesn't add to width */
 }
@@ -219,9 +219,9 @@ body {
 .instructions { 
   padding: 6rem 2rem; 
   text-align: center; 
-  background: rgba(18, 18, 26, 0);
-  backdrop-filter: blur(7px); 
-  border-top: 1px solid rgba(255,255,255,0.05);
+  background: transparent;
+  backdrop-filter: none; 
+  border-top: none;
   width: 100%;
 }
 .instructions h2 { font-size: 2.5rem; margin-bottom: 3rem; }
@@ -572,6 +572,7 @@ body {
 
   .bg-glow { opacity: 0.1; } 
 }
+
 
 
 
