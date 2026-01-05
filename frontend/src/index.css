@@ -252,7 +252,7 @@ body {
 .pricing-section { 
   padding: 6rem 2rem; 
   text-align: center;
-  background: rgba(0, 0, 0, 0.1); 
+  background: transparent; 
   width: 100%;
 }
 .pricing-grid { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-top: 3rem; }
@@ -298,8 +298,8 @@ body {
 .contact-section { 
   padding: 4rem 2rem; 
   text-align: center; 
-  border-top: 0px solid rgba(255,255,255,0.1);
-  background: rgba(14, 14, 21, 0.05); 
+  border-top: none;
+  background: transparent; 
   width: 100%;
 }
 .email-link { 
@@ -572,6 +572,7 @@ body {
 
   .bg-glow { opacity: 0.1; } 
 }
+
 
 
 
