@@ -7,23 +7,27 @@
   --neon-blue: #00f3ff;
 }
 
+/* --- GLOBAL RESET (Fixes Horizontal Scroll) --- */
+*, *::before, *::after {
+  box-sizing: border-box; /* Crucial: Ensures padding doesn't add to width */
+}
+
 body {
   margin: 0;
-  /* UPDATED: Set to transparent so video shows through */
   background-color: transparent; 
   color: var(--text-primary);
   font-family: 'Titillium Web', sans-serif, system-ui;
-  overflow-x: hidden;
+  overflow-x: hidden; /* Safety net */
+  width: 100%;
 }
 
 /* --- BACKGROUND GLOW --- */
 .bg-glow {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
-  /* UPDATED: Used RGBA for transparency so video is visible through the glow */
-  background: radial-gradient(circle at 50% 10%, rgba(42, 42, 69, 0.1) 0%, rgba(21, 21, 30, 0.1) 0%);
+  background: radial-gradient(circle at 50% 10%, rgba(42, 42, 69, 0.5) 0%, rgba(21, 21, 30, 0.8) 60%);
   z-index: -1;
-  pointer-events: none; /* Ensure clicks pass through */
+  pointer-events: none;
 }
 
 /* --- NAVBAR --- */
@@ -32,19 +36,18 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 3rem;
-  background: rgba(10, 10, 20, 0.1); /* Slightly darker for readability */
+  background: rgba(10, 10, 20, 0.6);
   backdrop-filter: blur(10px);
   position: fixed;
   width: 100%;
   top: 0;
   z-index: 1000;
-  box-sizing: border-box;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .logo { 
   font-weight: 800; 
-  font-size: 1.6rem; 
+  font-size: 1.5rem; 
   color: white; 
   font-style: italic;
   letter-spacing: -1px;
@@ -61,7 +64,7 @@ body {
 
 .btn-nav {
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.3);
   color: white;
   padding: 8px 18px;
   cursor: pointer;
@@ -88,7 +91,7 @@ body {
   justify-content: center;
   padding-top: 80px;
   position: relative;
-  /* No background here, letting the video shine */
+  width: 100%; /* Ensure container fits */
 }
 
 .hero-content {
@@ -105,7 +108,7 @@ body {
 
 .hero-text {
   flex: 1;
-  min-width: 300px;
+  min-width: 300px; /* Allows wrapping on small screens */
   text-align: left;
 }
 
@@ -122,8 +125,7 @@ body {
   color: var(--text-secondary);
   line-height: 1.6;
   max-width: 500px;
-  /* Added text shadow for better readability over video */
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
 .neon-text {
@@ -133,13 +135,16 @@ body {
 
 /* --- AUTH BOX --- */
 .auth-box {
-  flex: 0 0 350px;
-  background: rgba(20, 20, 35, 0.1); /* Increased opacity slightly */
+  /* FIXED: Changed flex-basis to allow shrinking, added width 100% for mobile */
+  flex: 0 1 350px; 
+  width: 100%; 
+  max-width: 350px; 
+  background: rgba(20, 20, 35, 0.75);
   backdrop-filter: blur(12px);
   padding: 2rem;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.17);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 .auth-box h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.5rem; }
@@ -148,11 +153,10 @@ body {
   width: 100%;
   padding: 12px;
   margin-bottom: 12px;
-  background: rgba(0,0,0,0.25); /* Darker input background */
+  background: rgba(0,0,0,0.5);
   border: 1px solid #444;
   color: white;
   border-radius: 6px;
-  box-sizing: border-box;
 }
 .auth-box input:focus { outline: none; border-color: var(--neon-blue); }
 
@@ -215,8 +219,10 @@ body {
 .instructions { 
   padding: 6rem 2rem; 
   text-align: center; 
-  /* UPDATED: Semi-transparent background with blur */
-  background: rgba(18, 18, 26, 0.1);
+  background: rgba(18, 18, 26, 0.85);
+  backdrop-filter: blur(10px); 
+  border-top: 1px solid rgba(255,255,255,0.05);
+  width: 100%;
 }
 .instructions h2 { font-size: 2.5rem; margin-bottom: 3rem; }
 
@@ -228,15 +234,16 @@ body {
 }
 
 .step-card {
-  width: 280px;
+  width: 100%; /* Allow fluidity */
+  max-width: 280px; /* Cap width */
   padding: 30px;
-  background: rgba(30, 30, 40, 0.1); /* More opaque than before */
+  background: rgba(30, 30, 40, 0.7);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   border-top: 4px solid var(--neon-blue);
   text-align: left;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 .step-card h3 { color: white; margin-top: 0; }
 .step-card p { color: var(--text-secondary); line-height: 1.5; }
@@ -245,17 +252,18 @@ body {
 .pricing-section { 
   padding: 6rem 2rem; 
   text-align: center;
-  /* UPDATED: Added a very light tint so text pops against video */
-  background: rgba(0, 0, 0, 0.1); 
+  background: rgba(0, 0, 0, 0.4); 
+  width: 100%;
 }
 .pricing-grid { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-top: 3rem; }
 
 .price-card {
-  background: rgba(30, 30, 40, 0.15); /* Increased opacity */
+  background: rgba(30, 30, 40, 0.85);
   backdrop-filter: blur(8px);
   padding: 2.5rem;
   border-radius: 16px;
-  width: 300px;
+  width: 100%; /* Fluid */
+  max-width: 300px; /* Max cap */
   border: 1px solid rgba(255, 255, 255, 0.05);
   position: relative;
   transition: transform 0.3s;
@@ -290,15 +298,16 @@ body {
 .contact-section { 
   padding: 4rem 2rem; 
   text-align: center; 
-  border-top: 0px solid rgba(255,255,255,0.1);
-  /* UPDATED: Dark semi-transparent background */
-  background: rgba(14, 14, 21, 0.15); 
+  border-top: 1px solid rgba(255,255,255,0.1);
+  background: rgba(14, 14, 21, 0.95); 
+  width: 100%;
 }
 .email-link { 
   color: var(--neon-blue); 
   font-size: 1.5rem; 
   text-decoration: none; 
-  font-weight: bold; 
+  font-weight: bold;
+  word-break: break-all; /* Ensures long emails wrap on mobile */
 }
 .email-link:hover { text-decoration: underline; }
 
@@ -321,18 +330,17 @@ body {
   justify-content: center;
   font-size: 1.5rem;
   color: var(--neon-blue);
-  /* Ensure loading screen covers the video if needed */
   background: var(--dark-bg); 
 }
 
 /* --- DASHBOARD STYLES --- */
-/* (Added background color to container so dashboard isn't transparent) */
 .dashboard-container {
   min-height: 100vh;
-  padding: 2rem 3rem;
+  padding: 2rem 3rem; /* Default padding for desktop */
   position: relative;
   z-index: 1;
-  background-color: var(--dark-bg); /* Dashboard should remain solid */
+  background-color: var(--dark-bg);
+  width: 100%;
 }
 
 .dashboard-header {
@@ -341,7 +349,7 @@ body {
   align-items: center;
   margin-bottom: 2rem;
   padding: 1rem 1.5rem;
-  background: rgba(30, 30, 47, 0.1);
+  background: rgba(30, 30, 47, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   backdrop-filter: blur(10px);
@@ -363,7 +371,7 @@ body {
   font-style: normal;
 }
 
-/* --- CONTROL PANEL (The Dropdowns) --- */
+/* --- CONTROL PANEL --- */
 .control-panel {
   display: flex;
   gap: 15px;
@@ -424,7 +432,7 @@ body {
 /* --- CHARTS GRID --- */
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); /* Might trigger scroll on very small screens, fixed in media query below */
   gap: 25px;
   margin-bottom: 50px;
 }
@@ -465,6 +473,7 @@ body {
   border-radius: 6px;
   font-size: 0.9rem;
   display: inline-block;
+  max-width: 100%; /* Prevent overflow */
 }
 .reset-link {
   color: white;
@@ -503,13 +512,18 @@ body {
   gap: 20px;
 }
 
-/* --- MEDIA QUERIES --- */
+/* --- MEDIA QUERIES (ADAPTATION) --- */
+
 @media (max-width: 1024px) {
   .hero h1 { font-size: 3rem; }
-  .price-card { width: 45%; }
+  /* Ensure cards don't force width */
+  .price-card { width: 45%; max-width: none; } 
 }
 
 @media (max-width: 768px) {
+  /* --- GLOBAL MOBILE FIXES --- */
+  
+  /* Stack Dashboard Grids */
   .dashboard-grid-race, 
   .dashboard-grid-telemetry,
   .charts-split {
@@ -518,6 +532,16 @@ body {
     flex-direction: column;
   }
 
+  /* Reduce Dashboard Padding to prevent overflow */
+  .dashboard-container {
+    padding: 1rem;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr; /* Stack charts */
+  }
+
+  /* Adjust Navbar */
   .navbar {
     padding: 1rem;
     flex-direction: column;
@@ -526,13 +550,18 @@ body {
   .nav-links { margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
   .nav-links a { margin: 0; }
   
+  /* Landing Page Hero */
   .hero { padding-top: 140px; }
   .hero-content { flex-direction: column; text-align: center; }
-  .hero-text { margin-bottom: 30px; }
+  .hero-text { margin-bottom: 30px; min-width: 0; } /* Allow text to shrink */
+  
+  /* Ensure auth box fits */
   .auth-box { width: 100%; max-width: 100%; }
   
-  .price-card, .step-card { width: 100%; }
+  /* Pricing & Steps */
+  .price-card, .step-card { width: 100%; max-width: 100%; }
   
+  /* Dashboard Controls */
   .dashboard-controls { flex-direction: column; align-items: stretch; }
   .dashboard-controls select, 
   .dashboard-controls input, 
@@ -541,10 +570,5 @@ body {
     min-width: 0 !important;
   }
 
-  /* Don't hide glow entirely, just reduce it */
   .bg-glow { opacity: 0.3; } 
 }
-
-
-
-
