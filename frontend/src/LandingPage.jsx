@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import './index.css';
 
 // --- ASSETS ---
-// ⚠️ Make sure to put your video file in the 'src/assets' folder
 import maxVideo from './assets/max_verstappen.mp4'; 
+// IMPORT THE STATIC IMAGE (Snapshot of the first frame of the video)
+import maxPoster from './assets/max_poster.png'; 
 
 // --- ANIMATION VARIANTS ---
 const fadeInUp = {
@@ -26,7 +27,7 @@ function LandingPage({ onLoginSuccess }) {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
+  const [authMode, setAuthMode] = useState('login'); 
   const [message, setMessage] = useState(null);
 
   // --- AUTH LOGIC ---
@@ -36,7 +37,7 @@ function LandingPage({ onLoginSuccess }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin // Returns to your site after login
+        redirectTo: window.location.origin 
       }
     });
     if (error) setMessage({ type: 'error', text: error.message });
@@ -44,7 +45,6 @@ function LandingPage({ onLoginSuccess }) {
   };
 
   const handleAppleLogin = async () => {
-    // Apple login requires a paid Developer Account and verified domain.
     alert("Apple Sign-In is coming in the Professional tier update!");
   };
 
@@ -54,22 +54,20 @@ function LandingPage({ onLoginSuccess }) {
     setMessage(null);
 
     if (authMode === 'signup') {
-      // 1. Sign Up Logic (With Name)
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name: fullName } // Saving the name in metadata
+          data: { full_name: fullName } 
         }
       });
       if (error) {
         setMessage({ type: 'error', text: error.message });
       } else {
         setMessage({ type: 'success', text: "✅ Account created! Check your email to verify." });
-        setAuthMode('login'); // Switch back to login view
+        setAuthMode('login'); 
       }
     } else {
-      // 2. Login Logic
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -77,7 +75,6 @@ function LandingPage({ onLoginSuccess }) {
       if (error) {
         setMessage({ type: 'error', text: error.message });
       } else {
-        // App.jsx detects the session change automatically, but we can call parent too
         if(onLoginSuccess) onLoginSuccess(data.session);
       }
     }
@@ -104,6 +101,8 @@ function LandingPage({ onLoginSuccess }) {
           loop 
           muted 
           playsInline 
+          preload="auto" /* Tells browser to download immediately */
+          poster={maxPoster} /* Shows this image instantly while video loads */
           style={{
             width: '100%',
             height: '100%',
@@ -123,7 +122,7 @@ function LandingPage({ onLoginSuccess }) {
           left: 0,
           width: '100%',
           height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.6)', // Adjust opacity (0.6) to make video darker/lighter
+          backgroundColor: 'rgba(0, 0, 0, 0.6)', 
           zIndex: 1
         }}></div>
       </div>
@@ -161,8 +160,8 @@ function LandingPage({ onLoginSuccess }) {
               Data at <span className="neon-text">300km/h</span>
             </motion.h1>
             <motion.p variants={fadeInUp}>
-              Analyse Formula 1 telemetry like a Race Engineer. 
-              Uncover the gaps, visualise strategies, and master the track.
+              Analyze Formula 1 telemetry like a Race Engineer. 
+              Uncover the gaps, visualize strategies, and master the track.
             </motion.p>
           </motion.div>
           
@@ -248,9 +247,9 @@ function LandingPage({ onLoginSuccess }) {
         </motion.h2>
         <div className="cards-wrapper">
             {[ 
-              { title: "1. Select Race", desc: "Access the full race archive from 2016.", delay: 0 },
-              { title: "2. Choose Drivers", desc: "Head-to-head comparison between any drivers in any session.", delay: 0.2 },
-              { title: "3. Analyse Gaps", desc: "Pinpoint braking points and throttle traces. Uncover time gained or lost", delay: 0.4 }
+              { title: "1. Select Race", desc: "Access the full archive from 2021.", delay: 0 },
+              { title: "2. Choose Drivers", desc: "Head-to-head comparison between any drivers.", delay: 0.2 },
+              { title: "3. Analyse Gaps", desc: "Pinpoint braking points and throttle traces.", delay: 0.4 }
             ].map((step, i) => (
                 <motion.div 
                     key={i}
@@ -297,7 +296,7 @@ function LandingPage({ onLoginSuccess }) {
       <section id="contact" className="contact-section">
         <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}>
             <h2>Contact Race Control</h2>
-            <a href="mailto:support@beyondtheapex.com" className="email-link">priyanshupratik07@gmail.com</a>
+            <a href="mailto:support@beyondtheapex.com" className="email-link">support@beyondtheapex.com</a>
         </motion.div>
       </section>
     </div>
