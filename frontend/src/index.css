@@ -336,10 +336,11 @@ body {
 /* --- DASHBOARD STYLES --- */
 .dashboard-container {
   min-height: 100vh;
-  padding: 2rem 3rem; /* Default padding for desktop */
+  padding: 2rem 3rem; 
   position: relative;
   z-index: 1;
-  background-color: var(--dark-bg);
+  /* UPDATED: Deep gradient background instead of flat color */
+  background: radial-gradient(circle at 50% 0%, #2a2a35 0%, #0e0e12 100%);
   width: 100%;
 }
 
@@ -437,10 +438,19 @@ body {
   margin-bottom: 50px;
 }
 
+.card { 
+  background: rgba(30, 30, 47, 0.4); /* Semi-transparent */
+  backdrop-filter: blur(8px); /* Glass effect */
+  padding: 25px; 
+  borderRadius: 16px; 
+  border: 1px solid rgba(255, 255, 255, 0.08); 
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
+}
+
 .chart-card {
-  background: var(--card-bg);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  background: rgba(30, 30, 47, 0.4); /* Match the card style */
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 20px;
   box-shadow: 0 5px 15px rgba(0,0,0,0.2);
   transition: border-color 0.3s;
@@ -481,6 +491,29 @@ body {
   cursor: pointer;
   margin-left: 10px;
   font-weight: bold;
+}
+
+/* Mobile Collapsible Chart Header */
+.mobile-chart-header {
+  display: none; /* Hidden on desktop */
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .mobile-chart-header {
+    display: flex; /* Show only on mobile */
+  }
+  
+  /* Helper class to hide chart bodies on mobile if not expanded */
+  .chart-body-collapsed {
+    display: none;
+  }
 }
 
 /* --- RESPONSIVE LAYOUT CLASSES --- */
@@ -569,6 +602,37 @@ body {
     width: 100% !important;
     min-width: 0 !important;
   }
+
+  /* --- FIX 1: Track Map Widget on Mobile --- */
+  /* Force it to be a fixed "bottom sheet" or centered box on mobile */
+  div[style*="position: fixed"][style*="z-index: 9999"] {
+    width: 95% !important;
+    height: 60vh !important; /* Take up 60% of screen height */
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important; /* Center it */
+    transform-origin: center center !important; /* Fix animation origin */
+  }
+
+  /* --- FIX 2: Championship Modal on Mobile --- */
+  /* Force full width/height with safe margins */
+  div[style*="width: 90vw"][style*="height: 90vh"] {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important; /* Full screen look */
+    padding: 15px !important;
+  }
+
+  /* --- FIX 3: Predictor Columns Stack --- */
+  /* Ensure the predictor widget inside the modal stacks vertically */
+  .predictorContainer {
+    grid-template-columns: 1fr !important; /* Force single column */
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+
+  
 
   .bg-glow { opacity: 0.1; } 
 }
