@@ -57,6 +57,51 @@ const getTyreColor = (c) => TYRE_COLORS[c] || TYRE_COLORS['UNKNOWN'];
 const POINTS_SYSTEM = { 1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1 };
 const SPRINT_POINTS = { 1: 8, 2: 7, 3: 6, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1 };
 
+// --- HELPER COMPONENT: MOBILE COLLAPSIBLE ---
+// Wraps charts to be collapsible on mobile, always open on desktop
+const MobileCollapsibleChart = ({ title, children, onReset }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    if (!isMobile) {
+        // DESKTOP: Render standard chart card
+        return (
+            <div style={styles.chartContainer}>
+                <div style={styles.headerStyle}>
+                    <h5 style={styles.chartTitle}>{title}</h5>
+                    {onReset && <button onClick={onReset} style={styles.miniBtn}>⟲ Reset</button>}
+                </div>
+                {children}
+            </div>
+        );
+    }
+
+    // MOBILE: Render Collapsible Header
+    return (
+        <div style={{...styles.chartContainer, padding: '15px'}}>
+            <div 
+                onClick={() => setIsOpen(!isOpen)} 
+                style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer'}}
+            >
+                <h5 style={{...styles.chartTitle, margin: 0, color: isOpen ? COLORS.neon : COLORS.textDim}}>{title}</h5>
+                <span style={{color: COLORS.neon, fontWeight:'bold'}}>{isOpen ? '−' : '+'}</span>
+            </div>
+            {isOpen && (
+                <div style={{marginTop: '20px', animation: 'fadeIn 0.3s'}}>
+                    {onReset && <div style={{textAlign:'right', marginBottom:'10px'}}><button onClick={onReset} style={styles.miniBtn}>⟲ Reset</button></div>}
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+};
+
 function Dashboard({ session, handleLogout }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

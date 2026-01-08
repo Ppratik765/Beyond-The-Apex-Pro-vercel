@@ -345,12 +345,9 @@ body {
 }
 
 .dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding: 1rem 1.5rem;
-  background: rgba(30, 30, 47, 0.1);
+  display: flex; justifyContent: space-between; align-items: center;
+  margin-bottom: 2rem; padding: 1rem 1.5rem;
+  background: rgba(30, 30, 47, 0.4); /* More transparent */
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   backdrop-filter: blur(10px);
@@ -362,6 +359,12 @@ body {
   font-style: italic;
   font-weight: 800;
 }
+
+.dashboard-controls { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; align-items: center; }
+.dashboard-grid-race { display: grid; grid-template-columns: 7fr 2fr; gap: 20px; width: 100%; margin-bottom: 40px; }
+.dashboard-grid-telemetry { display: grid; grid-template-columns: 3fr 1fr; gap: 20px; }
+.charts-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
 .pro-badge {
   background: var(--f1-red);
   font-size: 0.6em;
@@ -607,29 +610,40 @@ body {
   /* Force it to be a fixed "bottom sheet" or centered box on mobile */
   div[style*="position: fixed"][style*="z-index: 9999"] {
     width: 95% !important;
-    height: 60vh !important; /* Take up 60% of screen height */
+    height: 60vh !important;
     top: 50% !important;
     left: 50% !important;
-    transform: translate(-50%, -50%) !important; /* Center it */
-    transform-origin: center center !important; /* Fix animation origin */
+    transform: translate(-50%, -50%) !important; 
+    transform-origin: center center !important;
   }
 
   /* --- FIX 2: Championship Modal on Mobile --- */
-  /* Force full width/height with safe margins */
+  /* 2. Force Modal to be Full Screen & Scrollable */
   div[style*="width: 90vw"][style*="height: 90vh"] {
     width: 100% !important;
     height: 100% !important;
-    border-radius: 0 !important; /* Full screen look */
+    border-radius: 0 !important;
     padding: 15px !important;
+    top: 0 !important;
+    left: 0 !important;
   }
 
   /* --- FIX 3: Predictor Columns Stack --- */
-  /* Ensure the predictor widget inside the modal stacks vertically */
+  /* This ensures: Predictor -> WDC -> WCC scroll order */
   .predictorContainer {
-    grid-template-columns: 1fr !important; /* Force single column */
+    grid-template-columns: 1fr !important;
     display: flex !important;
     flex-direction: column !important;
-    overflow-y: auto !important;
+    overflow-y: visible !important; /* Allow body scroll */
+    height: auto !important; /* Let it grow */
+  }
+  /* 4. Fix Championship Grid Stacking */
+  .standingsContainer {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: visible !important;
+    height: auto !important;
   }
 
   
