@@ -336,11 +336,11 @@ body {
 /* --- DASHBOARD STYLES --- */
 .dashboard-container {
   min-height: 100vh;
-  padding: 2rem 3rem; 
+  padding: 2rem 3rem;
   position: relative;
   z-index: 1;
-  /* UPDATED: Deep gradient background instead of flat color */
-  background: radial-gradient(circle at 50% 0%, #2a2a35 0%, #0e0e12 100%);
+  /* FORCE gradient background */
+  background: radial-gradient(circle at 50% 0%, #2a2a35 0%, #0e0e12 100%) !important;
   width: 100%;
 }
 
@@ -434,6 +434,16 @@ body {
 }
 
 /* --- CHARTS GRID --- */
+/* --- GLASSMORPHISM CARDS --- */
+.card, .chart-card, .scrollableCard {
+  background: rgba(30, 30, 47, 0.6) !important; /* Semi-transparent */
+  backdrop-filter: blur(12px) !important;        /* Glass blur */
+  padding: 25px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  color: white;
+}
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); /* Might trigger scroll on very small screens, fixed in media query below */
@@ -441,23 +451,6 @@ body {
   margin-bottom: 50px;
 }
 
-.card { 
-  background: rgba(30, 30, 47, 0.4); /* Semi-transparent */
-  backdrop-filter: blur(8px); /* Glass effect */
-  padding: 25px; 
-  borderRadius: 16px; 
-  border: 1px solid rgba(255, 255, 255, 0.08); 
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
-}
-
-.chart-card {
-  background: rgba(30, 30, 47, 0.4); /* Match the card style */
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 20px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  transition: border-color 0.3s;
-}
 .chart-card:hover {
   border-color: rgba(255, 255, 255, 0.1);
 }
@@ -497,6 +490,23 @@ body {
 }
 
 /* Mobile Collapsible Chart Header */
+
+.mobile-chart-toggle {
+  display: none; /* Hidden on desktop */
+  width: 100%;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--neon-blue);
+  color: var(--neon-blue);
+  border-radius: 8px;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-top: 20px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
 .mobile-chart-header {
   display: none; /* Hidden on desktop */
   justify-content: space-between;
@@ -598,57 +608,61 @@ body {
   .price-card, .step-card { width: 100%; max-width: 100%; }
   
   /* Dashboard Controls */
-  .dashboard-controls { flex-direction: column; align-items: stretch; }
-  .dashboard-controls select, 
-  .dashboard-controls input, 
-  .dashboard-controls button {
-    width: 100% !important;
+  .dashboard-controls { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; align-items: center; }
+  .dashboard-controls select, .dashboard-controls input, .dashboard-controls button { width: 100% !important;
     min-width: 0 !important;
   }
 
-  /* --- FIX 1: Track Map Widget on Mobile --- */
-  /* Force it to be a fixed "bottom sheet" or centered box on mobile */
+/* --- DASHBOARD REORDERING & COLLAPSING --- */
+  
+  /* 1. Stack Telemetry Grid (Charts Left, Info Right) */
+  .dashboard-grid-telemetry {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 2. Order Reversal: Lap Data/Weather (Info) goes FIRST, Charts SECOND */
+  .dashboard-grid-telemetry > div:last-child {
+    order: 1; /* Info Column (Lap Data) goes to top */
+  }
+  .dashboard-grid-telemetry > div:first-child {
+    order: 2; /* Charts Column goes to bottom */
+  }
+
+  /* 3. Stack other grids */
+  .dashboard-grid-race, .charts-split {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 4. Show the toggle button */
+  .mobile-chart-toggle { display: flex; }
+
+  /* 5. Mobile Modals & Maps */
   div[style*="position: fixed"][style*="z-index: 9999"] {
     width: 95% !important;
-    height: 60vh !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important; 
-    transform-origin: center center !important;
+    height: 70vh !important;
+    top: 50% !important; left: 50% !important;
+    transform: translate(-50%, -50%) !important;
   }
-
-  /* --- FIX 2: Championship Modal on Mobile --- */
-  /* 2. Force Modal to be Full Screen & Scrollable */
-  div[style*="width: 90vw"][style*="height: 90vh"] {
-    width: 100% !important;
-    height: 100% !important;
-    border-radius: 0 !important;
-    padding: 15px !important;
-    top: 0 !important;
-    left: 0 !important;
-  }
-
-  /* --- FIX 3: Predictor Columns Stack --- */
-  /* This ensures: Predictor -> WDC -> WCC scroll order */
-  .predictorContainer {
-    grid-template-columns: 1fr !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow-y: visible !important; /* Allow body scroll */
-    height: auto !important; /* Let it grow */
-  }
-  /* 4. Fix Championship Grid Stacking */
-  .standingsContainer {
-    grid-template-columns: 1fr !important;
+  
+  /* 6. Vertical Stacking for Tables (Standings/Predictor) */
+  .standingsContainer, .predictorContainer {
     display: flex !important;
     flex-direction: column !important;
     overflow-y: visible !important;
     height: auto !important;
   }
+  .scrollableCard, .card {
+    max-height: none !important; /* Allow full height scrolling */
+    overflow: visible !important;
+  }
+  
+  .dashboard-container { padding: 1rem; }
 
   
 
-  .bg-glow { opacity: 0.1; } 
+  .bg-glow { opacity: 0.1; }
 }
 
 
