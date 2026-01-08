@@ -710,6 +710,7 @@ body {
     max-height: none !important;
     overflow: visible !important;
     padding-bottom: 20px !important;
+    width: 100%;
   }
   
   /* 7. Predictor Inputs Stack on Mobile */
@@ -720,3 +721,4 @@ body {
 
   .bg-glow { opacity: 0.1; }
 }
+
