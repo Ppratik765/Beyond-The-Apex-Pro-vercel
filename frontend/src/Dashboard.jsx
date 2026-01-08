@@ -95,6 +95,11 @@ function Dashboard({ session, handleLogout }) {
 
   const API_BASE = import.meta.env.VITE_API_URL || 'https://f1-backend.zeabur.app';
 
+  // --- BUG FIX: Reset Predictor Mode when Year Changes ---
+  useEffect(() => {
+      setPredictionMode(false);
+  }, [inputs.year]);
+
   useEffect(() => {
       setTelemetryData(null); setRaceLapData(null); setStintData(null); 
       setRaceWinner(null); setRaceWeather(null); setSelectedLaps([]); 
@@ -305,7 +310,6 @@ function Dashboard({ session, handleLogout }) {
 
   const WeatherWidget = ({ weatherData }) => ( <div style={styles.card}> <h3 style={styles.cardTitle}>⛅ Weather</h3> <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'15px', fontSize:'0.9em', color: COLORS.textDim}}> <div><span style={{color:'#666', fontSize:'0.7em', letterSpacing:'1px'}}>TRACK</span><br/><b style={{color:'white', fontSize:'1.2em'}}>{weatherData.track_temp}°C</b></div> <div><span style={{color:'#666', fontSize:'0.7em', letterSpacing:'1px'}}>AIR</span><br/><b style={{color:'white', fontSize:'1.2em'}}>{weatherData.air_temp}°C</b></div> <div><span style={{color:'#666', fontSize:'0.7em', letterSpacing:'1px'}}>HUMIDITY</span><br/><b style={{color:'white', fontSize:'1.2em'}}>{weatherData.humidity}%</b></div> <div><span style={{color:'#666', fontSize:'0.7em', letterSpacing:'1px'}}>RAIN</span><br/><b style={{color: weatherData.rain ? COLORS.neon : '#666'}}>{weatherData.rain ? 'YES' : 'NO'}</b></div> </div> </div> );
   
-  // Reusable AI Insight Component
   const AIInsightWidget = () => (
       <div style={{ ...styles.card, borderTop:`3px solid ${COLORS.primary}` }}>
          <h3 style={styles.cardTitle}>🤖 AI Analysis</h3>
@@ -488,23 +492,29 @@ const styles = {
     floatingHeader: { padding: '12px 15px', background: 'rgba(255,255,255,0.05)', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'move', color: COLORS.neon, fontWeight: 'bold', fontSize: '0.9em', letterSpacing: '1px' },
     closeBtn: { background: 'transparent', border:'none', color:'#888', fontSize:'1.2em', cursor:'pointer', padding:'0 5px' },
     
-    // --- CHAMPIONSHIP MODAL STYLES ---
+    // --- CHAMPIONSHIP MODAL STYLES (Fixed Scroll Issue) ---
     modalOverlay: { position: 'fixed', top:0, left:0, width:'100vw', height:'100vh', background: 'rgba(0,0,0,0.8)', backdropFilter:'blur(8px)', zIndex: 10000, display:'flex', justifyContent:'center', alignItems:'center', animation: 'fadeIn 0.2s ease' },
-    modalContent: { width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', border: `1px solid ${COLORS.border}`, padding: '30px', display:'flex', flexDirection:'column' },
+    
+    // FIXED: Added overflowY: 'auto' so the modal itself scrolls if content is too tall
+    modalContent: { width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', border: `1px solid ${COLORS.border}`, padding: '30px', display:'flex', flexDirection:'column', overflowY: 'auto' },
+    
     modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'20px', flexShrink: 0 },
     
-    // NOTE: Main layout styles for the modal are now in index.css to handle media queries better
-    scrollableCard: { background: COLORS.card, padding: '20px', borderRadius: '16px', border: `1px solid ${COLORS.border}`, overflowY: 'auto', maxHeight: '100%' }, 
-    table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px', fontSize:'0.9em' },
-    
-    predGrid: { display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, paddingRight: '5px', paddingBottom: '20px' }, 
+    // FIXED: Increased paddingBottom to 100px so items aren't cut off
+    predGrid: { display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, paddingRight: '5px', paddingBottom: '100px' }, 
     
     predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px' },
     predSelect: { background: 'transparent', border: 'none', color: 'white', flex: 1, fontFamily:'inherit', cursor:'pointer' },
     colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px' },
     
-    standingsList: { flex: 1, overflowY: 'auto', paddingRight: '5px', paddingBottom: '40px' }, 
-    standingRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: `1px solid ${COLORS.grid}`, fontSize:'0.9em' }
+    // FIXED: Increased paddingBottom to 100px
+    standingsList: { flex: 1, overflowY: 'auto', paddingRight: '5px', paddingBottom: '100px' }, 
+    
+    standingRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: `1px solid ${COLORS.grid}`, fontSize:'0.9em' },
+    
+    // NOTE: Main layout styles for the modal (standingsContainer, predictorContainer) are in index.css
+    scrollableCard: { background: COLORS.card, padding: '20px', borderRadius: '16px', border: `1px solid ${COLORS.border}`, overflowY: 'auto', maxHeight: '100%', paddingBottom: '100px' }, 
+    table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px', fontSize:'0.9em' },
 };
 
 const styleSheet = document.createElement("style");
