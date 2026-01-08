@@ -498,22 +498,22 @@ const styles = {
     // FIXED: Added overflowY: 'auto' so the modal itself scrolls if content is too tall
     modalContent: { width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', border: `1px solid ${COLORS.border}`, padding: '30px', display:'flex', flexDirection:'column', overflowY: 'auto' },
     
-    modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'20px', flexShrink: 0 },
+    modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'15px', flexShrink: 0 },
     
     // FIXED: Increased paddingBottom to 100px so items aren't cut off
-    predGrid: { display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, paddingRight: '5px', paddingBottom: '100px' }, 
+    predGrid: { display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, paddingRight: '5px', paddingBottom: '40px' }, 
     
     predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px' },
     predSelect: { background: 'transparent', border: 'none', color: 'white', flex: 1, fontFamily:'inherit', cursor:'pointer' },
     colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px' },
     
     // FIXED: Increased paddingBottom to 100px
-    standingsList: { flex: 1, overflowY: 'auto', paddingRight: '5px', paddingBottom: '100px' }, 
+    standingsList: { flex: 1, overflowY: 'auto', paddingRight: '5px', paddingBottom: '40px' }, 
     
     standingRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: `1px solid ${COLORS.grid}`, fontSize:'0.9em' },
     
     // NOTE: Main layout styles for the modal (standingsContainer, predictorContainer) are in index.css
-    scrollableCard: { background: COLORS.card, padding: '20px', borderRadius: '16px', border: `1px solid ${COLORS.border}`, overflowY: 'auto', maxHeight: '100%', paddingBottom: '100px' }, 
+    scrollableCard: { background: COLORS.card, padding: '20px', borderRadius: '16px', border: `1px solid ${COLORS.border}`, overflowY: 'auto', maxHeight: '100%', paddingBottom: '40px' }, 
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px', fontSize:'0.9em' },
 };
 
