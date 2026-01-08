@@ -490,7 +490,6 @@ body {
   grid-template-columns: 1fr 1fr 1fr 1fr; /* 2 cols for Predictor, 1 for WDC, 1 for WCC */
   gap: 20px;
   height: 100%;
-  min-height: 0;
 }
 
 .predictor-inputs-row {
@@ -498,7 +497,7 @@ body {
   gap: 20px;
   overflow-y: auto;
   padding-right: 5px;
-  padding-bottom: 40px; /* EXTRA PADDING so users can scroll to the bottom */
+  padding-bottom: 30px; /* EXTRA PADDING so users can scroll to the bottom */
   flex: 1;
   flex-direction: row; 
 }
@@ -716,18 +715,8 @@ body {
   /* 7. Predictor Inputs Stack on Mobile */
   .predictor-inputs-row {
     flex-direction: column !important; /* Stack vertically on mobile */
-  }
-  
+  }  
   .dashboard-container { padding: 1rem; }
-
-
-  
 
   .bg-glow { opacity: 0.1; }
 }
-
-
-
-
-
-
