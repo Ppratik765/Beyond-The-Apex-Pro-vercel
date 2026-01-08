@@ -64,10 +64,8 @@ function Dashboard({ session, handleLogout }) {
   const [selectedLaps, setSelectedLaps] = useState([]); 
   const [hoverIndex, setHoverIndex] = useState(null); 
 
-  // Mobile State
   const [showMobileCharts, setShowMobileCharts] = useState(false);
 
-  // Map & Modal State
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [buttonCoords, setButtonCoords] = useState({ x: 0, y: 0, width: 0, height: 0 });
@@ -306,6 +304,16 @@ function Dashboard({ session, handleLogout }) {
   const renderSectorPlugin = () => ({ id: 'sectorLines', beforeDraw: (chart) => { if (!telemetryData || !telemetryData.track_length) return; const totalTrackLength = telemetryData.track_length; const s1 = totalTrackLength * 0.33; const s2 = totalTrackLength * 0.66; const ctx = chart.ctx; const xAxis = chart.scales.x; const yAxis = chart.scales.y; const drawLine = (val, label) => { const x = xAxis.getPixelForValue(val); if (x < xAxis.left || x > xAxis.right) return; ctx.save(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.moveTo(x, yAxis.top); ctx.lineTo(x, yAxis.bottom); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '10px "Titillium Web"'; ctx.fillText(label, x + 5, yAxis.top + 10); ctx.restore(); }; drawLine(s1, "S1"); drawLine(s2, "S2"); } });
 
   const WeatherWidget = ({ weatherData }) => ( <div style={styles.card}> <h3 style={styles.cardTitle}>⛅ Weather</h3> <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'15px', fontSize:'0.9em', color: COLORS.textDim}}> <div><span style={{color:'#666', fontSize:'0.7em', letterSpacing:'1px'}}>TRACK</span><br/><b style={{color:'white', fontSize:'1.2em'}}>{weatherData.track_temp}°C</b></div> <div><span style={{color:'#666', fontSize:'0.7em', letterSpacing:'1px'}}>AIR</span><br/><b style={{color:'white', fontSize:'1.2em'}}>{weatherData.air_temp}°C</b></div> <div><span style={{color:'#666', fontSize:'0.7em', letterSpacing:'1px'}}>HUMIDITY</span><br/><b style={{color:'white', fontSize:'1.2em'}}>{weatherData.humidity}%</b></div> <div><span style={{color:'#666', fontSize:'0.7em', letterSpacing:'1px'}}>RAIN</span><br/><b style={{color: weatherData.rain ? COLORS.neon : '#666'}}>{weatherData.rain ? 'YES' : 'NO'}</b></div> </div> </div> );
+  
+  // Reusable AI Insight Component
+  const AIInsightWidget = () => (
+      <div style={{ ...styles.card, borderTop:`3px solid ${COLORS.primary}` }}>
+         <h3 style={styles.cardTitle}>🤖 AI Analysis</h3>
+         <div style={{fontSize: '0.85em', color: COLORS.textDim, lineHeight:'1.6'}}> 
+            {telemetryData.ai_insights?.map((insight, idx) => (<div key={idx} style={{ marginBottom: '10px', paddingBottom:'10px', borderBottom: `1px solid ${COLORS.grid}` }}>{insight}</div>))} 
+         </div>
+      </div>
+  );
 
   const toggleMapExpand = () => {
       if (isMapExpanded) {
@@ -332,7 +340,6 @@ function Dashboard({ session, handleLogout }) {
   const nextRound = () => setCurrentPredictRound(p => Math.min(p + 1, schedule.length - 1));
   const prevRound = () => setCurrentPredictRound(p => Math.max(p - 1, 0));
 
-  // --- MOBILE COLLAPSE CHECK ---
   const isMobile = window.innerWidth <= 768; 
 
   return (
@@ -362,7 +369,6 @@ function Dashboard({ session, handleLogout }) {
                                   <button onClick={nextRound} style={styles.miniBtn}>▶</button>
                               </div>
                               
-                              {/* USE NEW CLASS FOR ROW ON DESKTOP, COLUMN ON MOBILE */}
                               <div className="predictor-inputs-row">
                                   <div style={{flex:1}}> <h5 style={styles.colHeader}>RACE PREDICTION (TOP 10)</h5>
                                       <div style={styles.predGrid}> {[...Array(10)].map((_, i) => { const pos = i + 1; const currentVal = predictions[currentRace.round]?.race?.[pos] || ''; const available = getAvailableDrivers(currentRace.round, 'race', pos); return ( <div key={i} style={styles.predRow}> <span style={{color:'#666', width:'25px'}}>{pos}</span> <select style={styles.predSelect} value={currentVal} onChange={(e) => updatePrediction('race', pos, e.target.value)} > <option value="" style={{backgroundColor: '#2b2b3d', color: 'white'}}>Select Driver</option> {currentVal && <option value={currentVal} style={{backgroundColor: '#2b2b3d', color: 'white'}}>{currentVal}</option>} {available.map(d => <option key={d.code} value={d.code} style={{backgroundColor: '#2b2b3d', color: 'white'}}>{d.code}</option>)} </select> <span style={{color: COLORS.neon, fontSize:'0.8em'}}>+{POINTS_SYSTEM[pos]}pts</span> </div> ); })} </div> </div>
@@ -427,10 +433,9 @@ function Dashboard({ session, handleLogout }) {
                     <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>LONGITUDINAL G</h5><button onClick={() => longGChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '150px'}}><Line ref={longGChartRef} data={longGData} options={telemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
                 </div>
                 
-                {/* AI INSIGHTS MOVED HERE FOR MOBILE COLLAPSE LOGIC */}
-                <div style={{ ...styles.card, borderTop:`3px solid ${COLORS.primary}` }}>
-                   <h3 style={styles.cardTitle}>🤖 AI Analysis</h3>
-                   <div style={{fontSize: '0.85em', color: COLORS.textDim, lineHeight:'1.6'}}> {telemetryData.ai_insights?.map((insight, idx) => (<div key={idx} style={{ marginBottom: '10px', paddingBottom:'10px', borderBottom: `1px solid ${COLORS.grid}` }}>{insight}</div>))} </div>
+                {/* MOBILE VIEW ONLY: AI INSIGHTS INSIDE COLLAPSIBLE SECTION */}
+                <div className="mobile-view">
+                    <AIInsightWidget />
                 </div>
               </div>
 
@@ -441,6 +446,11 @@ function Dashboard({ session, handleLogout }) {
                     {Object.keys(telemetryData.drivers).map((key, i) => { const dData = telemetryData.drivers[key]; if (!dData) return null; const delta = dData.lap_time - Math.min(...Object.values(telemetryData.drivers).map(d => d.lap_time)); const tyreColor = getTyreColor(dData.tyre_info.compound); return ( <div key={key} style={{marginBottom:'15px', borderBottom: `1px solid ${COLORS.grid}`, paddingBottom:'10px'}}> <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}> <div><span style={{fontWeight:'bold', color: DRIVER_COLORS[i % DRIVER_COLORS.length], fontSize:'1.2em'}}>{key}</span></div> <div style={{textAlign:'right'}}> <div style={{fontFamily:'monospace', color:'white', fontSize:'1.1em'}}>{formatTime(dData.lap_time)} <span style={{color: delta===0? COLORS.neon : '#ffee00', fontSize:'0.7em', fontWeight:'bold'}}>{delta===0?'FASTEST':`+${delta.toFixed(3)}`}</span></div> <div style={{fontSize:'0.8em', marginTop:'2px', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'5px'}}> <span style={{color: tyreColor, fontWeight:'bold', border: `1px solid ${tyreColor}`, padding:'0px 4px', borderRadius:'3px'}}>{dData.tyre_info.symbol}</span> <span style={{color:'#888'}}>{dData.tyre_info.age} laps</span> </div> </div> </div> <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.75em', fontFamily:'monospace', color:'#888', width:'100%'}}> {dData.sectors.map((s, idx) => ( <span key={idx} style={{color: getSectorColor(s, telemetryData.session_best_sectors[idx])}}>S{idx+1}:{s.toFixed(3)}</span> ))} </div> </div> ); })}
                 </div>
                 {telemetryData.weather && <WeatherWidget weatherData={telemetryData.weather} />}
+                
+                {/* DESKTOP VIEW ONLY: AI INSIGHTS IN RIGHT COLUMN */}
+                <div className="desktop-view">
+                    <AIInsightWidget />
+                </div>
                 
                 {/* MOBILE TOGGLE BUTTON */}
                 <div className="mobile-chart-toggle" onClick={() => setShowMobileCharts(!showMobileCharts)}>
@@ -481,15 +491,22 @@ const styles = {
     modalContent: { width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', border: `1px solid ${COLORS.border}`, padding: '30px', display:'flex', flexDirection:'column' },
     modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'20px', flexShrink: 0 },
     
+    // Standings (Static View)
     standingsContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', height: '100%', overflow:'hidden', minHeight: 0 },
     scrollableCard: { background: COLORS.card, padding: '20px', borderRadius: '16px', border: `1px solid ${COLORS.border}`, overflowY: 'auto', maxHeight: '100%' }, 
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px', fontSize:'0.9em' },
     
+    // Predictor View
     predictorContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '20px', height: '100%', minHeight:0 },
+    
+    // FIXED: Explicit scroll behavior for the predictor columns
     predGrid: { display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, paddingRight: '5px', paddingBottom: '20px' }, 
+    
     predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px' },
     predSelect: { background: 'transparent', border: 'none', color: 'white', flex: 1, fontFamily:'inherit', cursor:'pointer' },
     colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px' },
+    
+    // FIXED: Live Standings scrolling
     standingsList: { flex: 1, overflowY: 'auto', paddingRight: '5px', paddingBottom: '20px' }, 
     standingRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: `1px solid ${COLORS.grid}`, fontSize:'0.9em' }
 };

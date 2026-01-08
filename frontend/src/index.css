@@ -482,10 +482,16 @@ body {
   gap: 20px;
   overflow-y: auto;
   padding-right: 5px;
-  padding-bottom: 20px;
+  padding-bottom: 60px;
   flex: 1;
   flex-direction: row; /* Side by side on desktop */
 }
+
+/* --- VISIBILITY UTILITIES --- */
+/* Show on desktop, hide on mobile */
+.desktop-view { display: block; }
+/* Show on mobile, hide on desktop */
+.mobile-view { display: none; }
 
 /* --- MOBILE SPECIFIC BUTTON --- */
 .mobile-chart-toggle {
@@ -602,6 +608,10 @@ body {
 }
 
 @media (max-width: 768px) {
+
+  /* Visibility Toggles */
+  .desktop-view { display: none !important; }
+  .mobile-view { display: block !important; }
   /* --- GLOBAL MOBILE FIXES --- */
   
   /* Stack Dashboard Grids */
@@ -684,6 +694,7 @@ body {
   .scrollableCard, .card {
     max-height: none !important;
     overflow: visible !important;
+    padding-bottom: 40px !important;
   }
   
   /* 7. Predictor Inputs Stack on Mobile */
