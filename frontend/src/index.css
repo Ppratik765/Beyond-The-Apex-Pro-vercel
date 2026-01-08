@@ -490,6 +490,7 @@ body {
   grid-template-columns: 1fr 1fr 1fr 1fr; /* 2 cols for Predictor, 1 for WDC, 1 for WCC */
   gap: 20px;
   height: 100%;
+  min-height: 0;
 }
 
 .predictor-inputs-row {
