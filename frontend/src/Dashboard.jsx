@@ -423,47 +423,64 @@ function Dashboard({ session, handleLogout }) {
       )}
 
       {telemetryData && !loading && Object.keys(telemetryData.drivers).length > 0 && (
-          <div className="dashboard-grid-telemetry">
-              
-              {/* TELEMETRY CHARTS COLUMN (COLLAPSIBLE ON MOBILE) */}
-              <div style={{display: showMobileCharts || window.innerWidth > 768 ? 'flex' : 'none', flexDirection:'column', gap:'20px'}}>
-                <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>DELTA TO {isRaceOrPractice ? 'FASTEST' : 'POLE'} (SEC)</h5><button onClick={() => deltaChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '200px'}}><Line ref={deltaChartRef} data={deltaData} options={{...telemetryOptions, scales:{...telemetryOptions.scales, y:{reverse:true, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div> </div>
-                <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>SPEED (KM/H)</h5><button onClick={() => speedChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '250px'}}><Line ref={speedChartRef} data={speedData} options={telemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
-                <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>THROTTLE (%)</h5><button onClick={() => throttleChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '200px'}}><Line ref={throttleChartRef} data={throttleData} options={pctTelemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
-                <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>BRAKE PRESSURE (%)</h5><button onClick={() => brakeChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '200px'}}><Line ref={brakeChartRef} data={brakeData} options={pctTelemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
-                <div className="charts-split">
-                    <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>RPM</h5><button onClick={() => rpmChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '150px'}}><Line ref={rpmChartRef} data={rpmData} options={telemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
-                    <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>LONGITUDINAL G</h5><button onClick={() => longGChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '150px'}}><Line ref={longGChartRef} data={longGData} options={telemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
-                </div>
-                
-                {/* MOBILE VIEW ONLY: AI INSIGHTS INSIDE COLLAPSIBLE SECTION */}
-                <div className="mobile-view">
-                    <AIInsightWidget />
-                </div>
-              </div>
+        <div className="dashboard-grid-telemetry">
+            
+            {/* LEFT COLUMN: CHARTS */}
+            <div style={{display: showMobileCharts || window.innerWidth > 768 ? 'flex' : 'none', flexDirection:'column', gap:'20px'}}>
+            
+            {/* 1. DESKTOP POLE BAR (Hidden on Mobile via CSS) */}
+            <div className="desktop-view">
+                {isQualiSession && telemetryData.pole_info && ( 
+                    <div style={{background: 'rgba(0, 243, 255, 0.05)', padding:'15px', borderRadius:'8px', border:`1px solid ${COLORS.neon}`, color: COLORS.neon, display:'flex', justifyContent:'center', alignItems:'center', textShadow: `0 0 10px rgba(0,243,255,0.3)`, marginBottom: '10px'}}> 
+                        🏆 <b>POLE POSITION:</b> &nbsp; {telemetryData.pole_info.driver} &nbsp; ({formatTime(telemetryData.pole_info.time)}) 
+                    </div> 
+                )}
+            </div>
 
-              {/* INFO COLUMN (ALWAYS VISIBLE) */}
-              <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
-                {/* POLE POSITION MOVED HERE FOR MOBILE VISIBILITY */}
-                {isQualiSession && telemetryData.pole_info && ( <div style={{background: 'rgba(0, 243, 255, 0.05)', padding:'15px', borderRadius:'8px', border:`1px solid ${COLORS.neon}`, color: COLORS.neon, display:'flex', justifyContent:'center', alignItems:'center', textShadow: `0 0 10px rgba(0,243,255,0.3)`, marginBottom: '10px'}}> 🏆 <b>POLE POSITION:</b> &nbsp; {telemetryData.pole_info.driver} &nbsp; ({formatTime(telemetryData.pole_info.time)}) </div> )}
+            <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>DELTA TO {isRaceOrPractice ? 'FASTEST' : 'POLE'} (SEC)</h5><button onClick={() => deltaChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '200px'}}><Line ref={deltaChartRef} data={deltaData} options={{...telemetryOptions, scales:{...telemetryOptions.scales, y:{reverse:true, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div> </div>
+            <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>SPEED (KM/H)</h5><button onClick={() => speedChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '250px'}}><Line ref={speedChartRef} data={speedData} options={telemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
+            <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>THROTTLE (%)</h5><button onClick={() => throttleChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '200px'}}><Line ref={throttleChartRef} data={throttleData} options={pctTelemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
+            <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>BRAKE PRESSURE (%)</h5><button onClick={() => brakeChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '200px'}}><Line ref={brakeChartRef} data={brakeData} options={pctTelemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
+            <div className="charts-split">
+                <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>RPM</h5><button onClick={() => rpmChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '150px'}}><Line ref={rpmChartRef} data={rpmData} options={telemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
+                <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>LONGITUDINAL G</h5><button onClick={() => longGChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '150px'}}><Line ref={longGChartRef} data={longGData} options={telemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
+            </div>
+            
+            {/* MOBILE VIEW ONLY: AI INSIGHTS INSIDE COLLAPSIBLE SECTION */}
+            <div className="mobile-view">
+                <AIInsightWidget />
+            </div>
+            </div>
 
-                <div style={styles.card}>
-                    <h3 style={styles.cardTitle}>⏱️ Lap Data</h3>
-                    {Object.keys(telemetryData.drivers).map((key, i) => { const dData = telemetryData.drivers[key]; if (!dData) return null; const delta = dData.lap_time - Math.min(...Object.values(telemetryData.drivers).map(d => d.lap_time)); const tyreColor = getTyreColor(dData.tyre_info.compound); return ( <div key={key} style={{marginBottom:'15px', borderBottom: `1px solid ${COLORS.grid}`, paddingBottom:'10px'}}> <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}> <div><span style={{fontWeight:'bold', color: DRIVER_COLORS[i % DRIVER_COLORS.length], fontSize:'1.2em'}}>{key}</span></div> <div style={{textAlign:'right'}}> <div style={{fontFamily:'monospace', color:'white', fontSize:'1.1em'}}>{formatTime(dData.lap_time)} <span style={{color: delta===0? COLORS.neon : '#ffee00', fontSize:'0.7em', fontWeight:'bold'}}>{delta===0?'FASTEST':`+${delta.toFixed(3)}`}</span></div> <div style={{fontSize:'0.8em', marginTop:'2px', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'5px'}}> <span style={{color: tyreColor, fontWeight:'bold', border: `1px solid ${tyreColor}`, padding:'0px 4px', borderRadius:'3px'}}>{dData.tyre_info.symbol}</span> <span style={{color:'#888'}}>{dData.tyre_info.age} laps</span> </div> </div> </div> <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.75em', fontFamily:'monospace', color:'#888', width:'100%'}}> {dData.sectors.map((s, idx) => ( <span key={idx} style={{color: getSectorColor(s, telemetryData.session_best_sectors[idx])}}>S{idx+1}:{s.toFixed(3)}</span> ))} </div> </div> ); })}
-                </div>
-                {telemetryData.weather && <WeatherWidget weatherData={telemetryData.weather} />}
-                
-                {/* DESKTOP VIEW ONLY: AI INSIGHTS IN RIGHT COLUMN */}
-                <div className="desktop-view">
-                    <AIInsightWidget />
-                </div>
-                
-                {/* MOBILE TOGGLE BUTTON */}
-                <div className="mobile-chart-toggle" onClick={() => setShowMobileCharts(!showMobileCharts)}>
-                    {showMobileCharts ? 'Hide Charts & AI 🔼' : 'Show Charts & AI 📊'}
-                </div>
-              </div>
-          </div>
+            {/* RIGHT COLUMN: INFO */}
+            <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
+            
+            {/* 2. MOBILE POLE BAR (Hidden on Desktop via CSS) */}
+            <div className="mobile-view">
+                {isQualiSession && telemetryData.pole_info && ( 
+                    <div style={{background: 'rgba(0, 243, 255, 0.05)', padding:'15px', borderRadius:'8px', border:`1px solid ${COLORS.neon}`, color: COLORS.neon, display:'flex', justifyContent:'center', alignItems:'center', textShadow: `0 0 10px rgba(0,243,255,0.3)`, marginBottom: '10px'}}> 
+                        🏆 <b>POLE POSITION:</b> &nbsp; {telemetryData.pole_info.driver} &nbsp; ({formatTime(telemetryData.pole_info.time)}) 
+                    </div> 
+                )}
+            </div>
+
+            <div style={styles.card}>
+                <h3 style={styles.cardTitle}>⏱️ Lap Data</h3>
+                {Object.keys(telemetryData.drivers).map((key, i) => { const dData = telemetryData.drivers[key]; if (!dData) return null; const delta = dData.lap_time - Math.min(...Object.values(telemetryData.drivers).map(d => d.lap_time)); const tyreColor = getTyreColor(dData.tyre_info.compound); return ( <div key={key} style={{marginBottom:'15px', borderBottom: `1px solid ${COLORS.grid}`, paddingBottom:'10px'}}> <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}> <div><span style={{fontWeight:'bold', color: DRIVER_COLORS[i % DRIVER_COLORS.length], fontSize:'1.2em'}}>{key}</span></div> <div style={{textAlign:'right'}}> <div style={{fontFamily:'monospace', color:'white', fontSize:'1.1em'}}>{formatTime(dData.lap_time)} <span style={{color: delta===0? COLORS.neon : '#ffee00', fontSize:'0.7em', fontWeight:'bold'}}>{delta===0?'FASTEST':`+${delta.toFixed(3)}`}</span></div> <div style={{fontSize:'0.8em', marginTop:'2px', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'5px'}}> <span style={{color: tyreColor, fontWeight:'bold', border: `1px solid ${tyreColor}`, padding:'0px 4px', borderRadius:'3px'}}>{dData.tyre_info.symbol}</span> <span style={{color:'#888'}}>{dData.tyre_info.age} laps</span> </div> </div> </div> <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.75em', fontFamily:'monospace', color:'#888', width:'100%'}}> {dData.sectors.map((s, idx) => ( <span key={idx} style={{color: getSectorColor(s, telemetryData.session_best_sectors[idx])}}>S{idx+1}:{s.toFixed(3)}</span> ))} </div> </div> ); })}
+            </div>
+            {telemetryData.weather && <WeatherWidget weatherData={telemetryData.weather} />}
+            
+            {/* DESKTOP VIEW ONLY: AI INSIGHTS IN RIGHT COLUMN */}
+            <div className="desktop-view">
+                <AIInsightWidget />
+            </div>
+            
+            {/* MOBILE TOGGLE BUTTON */}
+            <div className="mobile-chart-toggle" onClick={() => setShowMobileCharts(!showMobileCharts)}>
+                {showMobileCharts ? 'Hide Charts & AI 🔼' : 'Show Charts & AI 📊'}
+            </div>
+            </div>
+        </div>
       )}
     </div>
   );

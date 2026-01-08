@@ -710,7 +710,7 @@ body {
   .scrollableCard, .card {
     max-height: none !important;
     overflow: visible !important;
-    padding-bottom: 40px !important;
+    padding-bottom: 20px !important;
   }
   
   /* 7. Predictor Inputs Stack on Mobile */
