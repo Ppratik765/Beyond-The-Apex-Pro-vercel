@@ -23,8 +23,20 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+const handleLogout = async () => {
+    try {
+      // 1. Attempt to notify server
+      const { error } = await supabase.auth.signOut();
+      if (error) console.warn("Server logout error (ignored):", error.message);
+    } catch (err) {
+      console.warn("Unexpected logout error:", err);
+    } finally {
+      // 2. FORCE local cleanup regardless of server response
+      // This ensures the UI updates even if the token was invalid
+      setSession(null);
+      localStorage.removeItem('sb-zdjeikhitvnydswueerk-auth-token'); // Clear Supabase local storage explicitly if needed
+      window.location.href = "/"; // Optional: Force a hard refresh to clear any stuck memory states
+    }
   };
 
   if (loading) return <div className="loading-screen">Starting Engine...</div>;
