@@ -35,7 +35,6 @@ const handleLogout = async () => {
       // This ensures the UI updates even if the token was invalid
       setSession(null);
       localStorage.removeItem('sb-zdjeikhitvnydswueerk-auth-token'); // Clear Supabase local storage explicitly if needed
-      window.location.href = "/"; // Optional: Force a hard refresh to clear any stuck memory states
     }
   };
 
