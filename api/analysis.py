@@ -167,7 +167,7 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
         "race_winner": winner_name, 
         "winner_label": winner_label, 
         "weather": weather,
-        "ai_insights": deg_insights[:5]
+        "ai_insights": deg_insights[:8]
     }
 
 def calculate_degradation(driver, stint, laps, insights_list):
@@ -342,18 +342,18 @@ def generate_ai_insights(multi_data, k1, k2):
         mask = (dist >= start) & (dist < end)
         if not np.any(mask): continue
         delta_change = delta[mask][-1] - delta[mask][0]
-        if abs(delta_change) > 0.04: 
+        if abs(delta_change) > 0.05: 
             gainer = k1 if delta_change > 0 else k2
             gain_val = abs(delta_change)
             avg_speed = np.mean(speed1[mask])
             avg_brake = np.mean(brake1[mask])
             if avg_brake > 10 and avg_speed < 200:
                 min_s1, min_s2 = np.min(speed1[mask]), np.min(speed2[mask])
-                if (gainer == k1 and min_s1 > min_s2 + 5): insights.append(f"Turn at {start}m: {gainer} carries +{int(min_s1 - min_s2)}km/h min speed.")
+                if (gainer == k1 and min_s1 > min_s2 + 6): insights.append(f"Turn at {start}m: {gainer} carries +{int(min_s1 - min_s2)}km/h min speed.")
                 else: insights.append(f"Braking at {start}m: {gainer} gains {gain_val:.3f}s.")
             elif avg_speed > 250:
                  speed_diff = np.mean(speed1[mask]) - np.mean(speed2[mask])
-                 if abs(speed_diff) > 3: insights.append(f"Straight at {start}m: {gainer} faster by {int(abs(speed_diff))}km/h.")
+                 if abs(speed_diff) > 4.5: insights.append(f"Straight at {start}m: {gainer} faster by {int(abs(speed_diff))}km/h.")
     unique_insights = list(set(insights))
     return unique_insights[:15] if unique_insights else ["No significant differences found."]
 

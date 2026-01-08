@@ -361,8 +361,8 @@ function Dashboard({ session, handleLogout }) {
                   </div>
 
                   {predictionMode && currentRace ? (
-                      <div style={styles.predictorContainer}>
-                          <div style={{...styles.card, gridColumn: 'span 2', display: 'flex', flexDirection: 'column', maxHeight: '600px'}}>
+                      <div className="predictorContainer">
+                          <div style={{...styles.card, gridColumn: 'span 2', display: 'flex', flexDirection: 'column', height: '100%', maxHeight:'600px', minHeight: 0}}>
                               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px', flexShrink: 0}}>
                                   <button onClick={prevRound} style={styles.miniBtn}>◀</button>
                                   <div style={{textAlign:'center'}}> <div style={{color: COLORS.neon, letterSpacing:'2px', fontSize:'0.8em'}}>ROUND {currentRace.round}</div> <h3 style={{margin:0}}>{currentRace.name}</h3> <div style={{color: '#666', fontSize:'0.8em'}}>{currentRace.date}</div> </div>
@@ -379,7 +379,7 @@ function Dashboard({ session, handleLogout }) {
                           <div style={{...styles.card, maxHeight: '600px', display: 'flex', flexDirection: 'column'}}> <h4 style={styles.cardTitle}>WCC (PREDICTED)</h4> <div style={styles.standingsList}> {displayedStandings.wcc.map((t, i) => ( <div key={t.id} style={styles.standingRow}> <span style={{color: COLORS.neon, width:'25px'}}>{i+1}</span> <span style={{flex:1, textAlign:'left'}}>{t.team}</span> <b>{t.points}</b> </div> ))} </div> </div>
                       </div>
                   ) : (
-                      <div style={styles.standingsContainer}>
+                      <div className="standingsContainer">
                           <div style={styles.scrollableCard}> <h3 style={styles.cardTitle}>WORLD DRIVERS' CHAMPIONSHIP</h3> <table style={styles.table}> <thead> <tr style={{color: COLORS.textDim, fontSize:'0.8em'}}> <th style={{textAlign:'left'}}>POS</th> <th style={{textAlign:'left'}}>DRIVER</th> <th style={{textAlign:'left'}}>TEAM</th> <th style={{textAlign:'right'}}>PTS</th> </tr> </thead> <tbody> {displayedStandings.wdc.map(d => ( <tr key={d.code} style={{borderBottom: `1px solid ${COLORS.grid}`}}> <td style={{color: COLORS.neon, fontWeight:'bold', padding:'10px 0'}}>{d.position}</td> <td>{d.name}</td> <td style={{color: '#888', fontSize:'0.9em'}}>{d.team}</td> <td style={{textAlign:'right', fontWeight:'bold'}}>{d.points}</td> </tr> ))} </tbody> </table> </div>
                           <div style={styles.scrollableCard}> <h3 style={styles.cardTitle}>WORLD CONSTRUCTORS' CHAMPIONSHIP</h3> <table style={styles.table}> <thead> <tr style={{color: COLORS.textDim, fontSize:'0.8em'}}> <th style={{textAlign:'left'}}>POS</th> <th style={{textAlign:'left'}}>TEAM</th> <th style={{textAlign:'right'}}>PTS</th> </tr> </thead> <tbody> {displayedStandings.wcc.map(t => ( <tr key={t.id} style={{borderBottom: `1px solid ${COLORS.grid}`}}> <td style={{color: COLORS.neon, fontWeight:'bold', padding:'10px 0'}}>{t.position}</td> <td>{t.team}</td> <td style={{textAlign:'right', fontWeight:'bold'}}>{t.points}</td> </tr> ))} </tbody> </table> </div>
                       </div>
@@ -423,7 +423,6 @@ function Dashboard({ session, handleLogout }) {
               
               {/* TELEMETRY CHARTS COLUMN (COLLAPSIBLE ON MOBILE) */}
               <div style={{display: showMobileCharts || window.innerWidth > 768 ? 'flex' : 'none', flexDirection:'column', gap:'20px'}}>
-                {isQualiSession && telemetryData.pole_info && ( <div style={{background: 'rgba(0, 243, 255, 0.05)', padding:'15px', borderRadius:'8px', border:`1px solid ${COLORS.neon}`, color: COLORS.neon, display:'flex', justifyContent:'center', alignItems:'center', textShadow: `0 0 10px rgba(0,243,255,0.3)`, marginBottom: '10px'}}> 🏆 <b>POLE POSITION:</b> &nbsp; {telemetryData.pole_info.driver} &nbsp; ({formatTime(telemetryData.pole_info.time)}) </div> )}
                 <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>DELTA TO {isRaceOrPractice ? 'FASTEST' : 'POLE'} (SEC)</h5><button onClick={() => deltaChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '200px'}}><Line ref={deltaChartRef} data={deltaData} options={{...telemetryOptions, scales:{...telemetryOptions.scales, y:{reverse:true, grid:{color: COLORS.grid}}}}} plugins={[renderSectorPlugin()]} /></div> </div>
                 <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>SPEED (KM/H)</h5><button onClick={() => speedChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '250px'}}><Line ref={speedChartRef} data={speedData} options={telemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
                 <div style={styles.chartContainer}> <div style={styles.headerStyle}><h5 style={styles.chartTitle}>THROTTLE (%)</h5><button onClick={() => throttleChartRef.current?.resetZoom()} style={styles.miniBtn}>⟲ Reset</button></div> <div style={{height: '200px'}}><Line ref={throttleChartRef} data={throttleData} options={pctTelemetryOptions} plugins={[renderSectorPlugin()]} /></div> </div>
@@ -441,6 +440,9 @@ function Dashboard({ session, handleLogout }) {
 
               {/* INFO COLUMN (ALWAYS VISIBLE) */}
               <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
+                {/* POLE POSITION MOVED HERE FOR MOBILE VISIBILITY */}
+                {isQualiSession && telemetryData.pole_info && ( <div style={{background: 'rgba(0, 243, 255, 0.05)', padding:'15px', borderRadius:'8px', border:`1px solid ${COLORS.neon}`, color: COLORS.neon, display:'flex', justifyContent:'center', alignItems:'center', textShadow: `0 0 10px rgba(0,243,255,0.3)`, marginBottom: '10px'}}> 🏆 <b>POLE POSITION:</b> &nbsp; {telemetryData.pole_info.driver} &nbsp; ({formatTime(telemetryData.pole_info.time)}) </div> )}
+
                 <div style={styles.card}>
                     <h3 style={styles.cardTitle}>⏱️ Lap Data</h3>
                     {Object.keys(telemetryData.drivers).map((key, i) => { const dData = telemetryData.drivers[key]; if (!dData) return null; const delta = dData.lap_time - Math.min(...Object.values(telemetryData.drivers).map(d => d.lap_time)); const tyreColor = getTyreColor(dData.tyre_info.compound); return ( <div key={key} style={{marginBottom:'15px', borderBottom: `1px solid ${COLORS.grid}`, paddingBottom:'10px'}}> <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}> <div><span style={{fontWeight:'bold', color: DRIVER_COLORS[i % DRIVER_COLORS.length], fontSize:'1.2em'}}>{key}</span></div> <div style={{textAlign:'right'}}> <div style={{fontFamily:'monospace', color:'white', fontSize:'1.1em'}}>{formatTime(dData.lap_time)} <span style={{color: delta===0? COLORS.neon : '#ffee00', fontSize:'0.7em', fontWeight:'bold'}}>{delta===0?'FASTEST':`+${delta.toFixed(3)}`}</span></div> <div style={{fontSize:'0.8em', marginTop:'2px', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'5px'}}> <span style={{color: tyreColor, fontWeight:'bold', border: `1px solid ${tyreColor}`, padding:'0px 4px', borderRadius:'3px'}}>{dData.tyre_info.symbol}</span> <span style={{color:'#888'}}>{dData.tyre_info.age} laps</span> </div> </div> </div> <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.75em', fontFamily:'monospace', color:'#888', width:'100%'}}> {dData.sectors.map((s, idx) => ( <span key={idx} style={{color: getSectorColor(s, telemetryData.session_best_sectors[idx])}}>S{idx+1}:{s.toFixed(3)}</span> ))} </div> </div> ); })}
@@ -491,23 +493,17 @@ const styles = {
     modalContent: { width: '90vw', height: '90vh', background: COLORS.bg, borderRadius: '20px', border: `1px solid ${COLORS.border}`, padding: '30px', display:'flex', flexDirection:'column' },
     modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${COLORS.border}`, paddingBottom:'20px', flexShrink: 0 },
     
-    // Standings (Static View)
-    standingsContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', height: '100%', overflow:'hidden', minHeight: 0 },
+    // NOTE: Main layout styles for the modal are now in index.css to handle media queries better
     scrollableCard: { background: COLORS.card, padding: '20px', borderRadius: '16px', border: `1px solid ${COLORS.border}`, overflowY: 'auto', maxHeight: '100%' }, 
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px', fontSize:'0.9em' },
     
-    // Predictor View
-    predictorContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '20px', height: '100%', minHeight:0 },
-    
-    // FIXED: Explicit scroll behavior for the predictor columns
     predGrid: { display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, paddingRight: '5px', paddingBottom: '20px' }, 
     
     predRow: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '6px' },
     predSelect: { background: 'transparent', border: 'none', color: 'white', flex: 1, fontFamily:'inherit', cursor:'pointer' },
     colHeader: { color: COLORS.textDim, marginBottom: '15px', fontSize:'0.8em', borderBottom:`1px solid ${COLORS.border}`, paddingBottom:'5px' },
     
-    // FIXED: Live Standings scrolling
-    standingsList: { flex: 1, overflowY: 'auto', paddingRight: '5px', paddingBottom: '20px' }, 
+    standingsList: { flex: 1, overflowY: 'auto', paddingRight: '5px', paddingBottom: '40px' }, 
     standingRow: { display: 'flex', justifyContent: 'space-between', padding: '10px', borderBottom: `1px solid ${COLORS.grid}`, fontSize:'0.9em' }
 };
 
