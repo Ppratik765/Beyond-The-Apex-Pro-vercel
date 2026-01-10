@@ -5,3 +5,5 @@ pandas
 numpy
 scipy
 requests
+redis
+fastapi-cache2[redis]

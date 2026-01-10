@@ -190,7 +190,7 @@ def calculate_degradation(driver, stint, laps, insights_list):
     elif slope < -0.02:
         insights_list.append(f"{driver} got faster on {compound}s (-{abs(slope):.2f}s/lap).")
 
-def get_telemetry_multi(year, race, session_type, driver_list, specific_laps=None):
+def get_telemetry_multi(year, race, session_type, driver_list, specific_laps=None, resolution=4000):
     session = fastf1.get_session(year, race, session_type)
     session.load()
     
@@ -242,7 +242,7 @@ def get_telemetry_multi(year, race, session_type, driver_list, specific_laps=Non
     if max_dist == 0 or not loaded_laps:
         raise Exception("No data found.")
 
-    x_new = np.linspace(0, max_track_length, num=4000)
+    x_new = np.linspace(0, max_track_length, num=resolution)
     pole_time_interp = np.interp(x_new, pole_tel['Distance'], pole_tel['Time'].dt.total_seconds())
 
     results = {}

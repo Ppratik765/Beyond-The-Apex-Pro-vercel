@@ -208,6 +208,9 @@ function Dashboard({ session, handleLogout }) {
     setLoading(true); setError(null);
     try {
       const params = { ...inputs };
+      // NEW: Detect Mobile and request lower quality
+      const isMobile = window.innerWidth <= 768;
+      params.quality = isMobile ? 'low' : 'high';
       if(lapsToFetch && lapsToFetch.length > 0) params.specific_laps = JSON.stringify(lapsToFetch);
       else if (isRaceOrPractice) { setLoading(false); return; }
       const res = await axios.get(`${API_BASE}/analyze`, { params: params });
