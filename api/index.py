@@ -54,7 +54,7 @@ def get_race_laps_endpoint(year: int, race: str, session: str, drivers: str):
         return {"status": "error", "message": str(e)}
 
 @app.get("/analyze")
-cache(expire=604800) # Cache for 1 week (604800 seconds)
+@cache(expire=604800) # Cache for 1 week (604800 seconds)
 def analyze_drivers(year: int, race: str, session: str, drivers: str, specific_laps: str = Query(None), quality: str = "high"):
     driver_list = [d.strip().upper() for d in drivers.split(',')]
     num_points = 800 if quality == "low" else 4000
@@ -87,3 +87,4 @@ def season_schedule(year: int):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
