@@ -167,7 +167,7 @@ def get_race_lap_distribution(year, race, session_type, driver_list):
         "race_winner": winner_name, 
         "winner_label": winner_label, 
         "weather": weather,
-        "ai_insights": deg_insights[:8]
+        "ai_insights": deg_insights[:7]
     }
 
 def calculate_degradation(driver, stint, laps, insights_list):
@@ -323,10 +323,20 @@ def get_telemetry_multi(year, race, session_type, driver_list, specific_laps=Non
     }
 
 def generate_ai_insights(multi_data, k1, k2):
+    """
+    Generates smart comparison insights between two drivers by identifying
+    corners (local minima in speed) and straights (local maxima).
+    """
     if k1 not in multi_data['drivers'] or k2 not in multi_data['drivers']:
-        return ["Insufficient data."]
-    t1 = multi_data['drivers'][k1]['telemetry']
-    t2 = multi_data['drivers'][k2]['telemetry']
+        return ["Insufficient data for analysis."]
+
+    d1 = multi_data['drivers'][k1]
+    d2 = multi_data['drivers'][k2]
+    
+    t1 = d1['telemetry']
+    t2 = d2['telemetry']
+    
+    # Extract arrays
     dist = np.array(t1['distance'])
     speed1 = np.array(t1['speed'])
     speed2 = np.array(t2['speed'])
@@ -334,28 +344,107 @@ def generate_ai_insights(multi_data, k1, k2):
     throttle2 = np.array(t2['throttle'])
     brake1 = np.array(t1['brake'])
     brake2 = np.array(t2['brake'])
-    delta = np.array(t2['time']) - np.array(t1['time'])
+    time1 = np.array(t1['time'])
+    time2 = np.array(t2['time'])
+    
     insights = []
-    chunk_size = 250 
-    for start in range(0, int(dist.max()), chunk_size):
-        end = start + chunk_size
-        mask = (dist >= start) & (dist < end)
-        if not np.any(mask): continue
-        delta_change = delta[mask][-1] - delta[mask][0]
-        if abs(delta_change) > 0.05: 
-            gainer = k1 if delta_change > 0 else k2
-            gain_val = abs(delta_change)
-            avg_speed = np.mean(speed1[mask])
-            avg_brake = np.mean(brake1[mask])
-            if avg_brake > 10 and avg_speed < 200:
-                min_s1, min_s2 = np.min(speed1[mask]), np.min(speed2[mask])
-                if (gainer == k1 and min_s1 > min_s2 + 6): insights.append(f"Turn at {start}m: {gainer} carries +{int(min_s1 - min_s2)}km/h min speed.")
-                else: insights.append(f"Braking at {start}m: {gainer} gains {gain_val:.3f}s.")
-            elif avg_speed > 250:
-                 speed_diff = np.mean(speed1[mask]) - np.mean(speed2[mask])
-                 if abs(speed_diff) > 4.5: insights.append(f"Straight at {start}m: {gainer} faster by {int(abs(speed_diff))}km/h.")
-    unique_insights = list(set(insights))
-    return unique_insights[:15] if unique_insights else ["No significant differences found."]
+    
+    # 1. Compare Lap Times
+    gap = d2['lap_time'] - d1['lap_time']
+    faster_driver = k1 if gap > 0 else k2
+    insights.append(f"🏁 **Lap Time:** {faster_driver} is faster by {abs(gap):.3f}s.")
+
+    # 2. Identify Corners (Local Minima in Speed)
+    # We smooth speed slightly to avoid noise, then find peaks
+    # A 'corner' is where speed drops significantly
+    
+    # Simple peak detection for local minima (corners)
+    # We look for points where speed is lower than neighbors
+    window = 50 # Check +/- 50 indices
+    corners = []
+    
+    # Iterate through track to find apexes
+    # Optimization: Skip every 50m to speed up
+    for i in range(window, len(dist) - window, window):
+        chunk_s1 = speed1[i-window:i+window]
+        min_idx_local = np.argmin(chunk_s1)
+        global_idx = i - window + min_idx_local
+        
+        # Check if it's a real corner (speed < 200km/h usually, distinct dip)
+        current_speed = speed1[global_idx]
+        if current_speed < 250 and current_speed < np.mean(speed1[global_idx-100:global_idx+100]) - 20:
+            # Avoid duplicate corners close to each other
+            if not corners or abs(dist[global_idx] - dist[corners[-1]]) > 200:
+                corners.append(global_idx)
+
+    # 3. Analyze Each Corner
+    turn_count = 1
+    for idx in corners:
+        meter_point = int(dist[idx])
+        
+        # A. Apex Speed
+        s1_apex = speed1[idx]
+        s2_apex = speed2[idx]
+        diff = s1_apex - s2_apex
+        
+        if abs(diff) > 3: # Ignore negligible diffs
+            adv = k1 if diff > 0 else k2
+            insights.append(f"📍 **Turn {turn_count} ({meter_point}m):** {adv} carries +{abs(int(diff))} km/h minimum speed.")
+
+        # B. Braking (Who brakes later?)
+        # Look backwards from apex to find where brake went > 50%
+        # Simple heuristic: Check 300m before apex
+        search_back = 300 
+        start_search = max(0, idx - int(search_back)) # Roughly indices, not meters perfectly, but close enough for gradients
+        
+        # Find where braking started (first index where brake > 10 in the window leading to corner)
+        b1_zone = np.where(brake1[start_search:idx] > 10)[0]
+        b2_zone = np.where(brake2[start_search:idx] > 10)[0]
+        
+        if len(b1_zone) > 0 and len(b2_zone) > 0:
+            # Global index of braking start
+            b1_start = start_search + b1_zone[0]
+            b2_start = start_search + b2_zone[0]
+            
+            # Distance diff
+            brake_diff_m = dist[b1_start] - dist[b2_start]
+            
+            if abs(brake_diff_m) > 5: # If diff is > 5 meters
+                late_braker = k1 if brake_diff_m > 0 else k2 # Larger distance means started later
+                insights.append(f"🛑 **Braking into Turn {turn_count}:** {late_braker} brakes {abs(int(brake_diff_m))}m later.")
+
+        # C. Throttle Application (Who gets on power earlier?)
+        # Look forwards from apex
+        search_fwd = 300
+        end_search = min(len(dist), idx + int(search_fwd))
+        
+        t1_zone = np.where(throttle1[idx:end_search] > 90)[0] # Full throttle
+        t2_zone = np.where(throttle2[idx:end_search] > 90)[0]
+        
+        if len(t1_zone) > 0 and len(t2_zone) > 0:
+            t1_full = idx + t1_zone[0]
+            t2_full = idx + t2_zone[0]
+            
+            throttle_diff_m = dist[t1_full] - dist[t2_full]
+            
+            if abs(throttle_diff_m) > 10:
+                early_power = k2 if throttle_diff_m > 0 else k1 # Smaller distance means earlier
+                insights.append(f"🚀 **Exit of Turn {turn_count}:** {early_power} reaches full throttle {abs(int(throttle_diff_m))}m earlier.")
+
+        turn_count += 1
+
+    # 4. Straight Line Speed (DRS/Drag)
+    # Find max speed on longest straight
+    max_idx = np.argmax(speed1)
+    top_s1 = speed1[max_idx]
+    top_s2 = speed2[max_idx]
+    
+    if abs(top_s1 - top_s2) > 2:
+        fastest_straight = k1 if top_s1 > top_s2 else k2
+        insights.append(f"🔥 **Top Speed:** {fastest_straight} is faster by {abs(int(top_s1 - top_s2))} km/h on the main straight.")
+
+    # Limit to 12 most impactful
+    return insights[:12]
 
 # --- UPDATED CHAMPIONSHIP LOGIC ---
 def get_season_standings(year):
