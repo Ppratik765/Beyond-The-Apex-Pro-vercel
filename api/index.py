@@ -35,6 +35,15 @@ async def startup():
     redis = aioredis.from_url(redis_url, encoding="utf8", decode_responses=True)
     FastAPICache.init(RedisBackend(redis), prefix="f1-cache")
 
+@app.get("/clear_cache")
+async def clear_cache():
+    try:
+        # This clears all keys created by fastapi-cache (with the "f1-cache" prefix)
+        await FastAPICache.clear()
+        return {"status": "success", "message": "Redis cache successfully cleared."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.get("/years")
 def get_years(): return {"years": get_available_years()}
 

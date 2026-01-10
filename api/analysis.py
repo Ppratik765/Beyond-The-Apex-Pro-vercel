@@ -352,7 +352,7 @@ def generate_ai_insights(multi_data, k1, k2):
     # 1. Compare Lap Times
     gap = d2['lap_time'] - d1['lap_time']
     faster_driver = k1 if gap > 0 else k2
-    insights.append(f"🏁 **Lap Time:** {faster_driver} is faster by {abs(gap):.3f}s.")
+    insights.append(f"Lap Time: {faster_driver} is faster by {abs(gap):.3f}s.")
 
     # 2. Identify Corners (Local Minima in Speed)
     # We smooth speed slightly to avoid noise, then find peaks
@@ -389,7 +389,7 @@ def generate_ai_insights(multi_data, k1, k2):
         
         if abs(diff) > 3: # Ignore negligible diffs
             adv = k1 if diff > 0 else k2
-            insights.append(f"📍 **Turn {turn_count} ({meter_point}m):** {adv} carries +{abs(int(diff))} km/h minimum speed.")
+            insights.append(f"Turn {turn_count} ({meter_point}m): {adv} carries +{abs(int(diff))} km/h minimum speed.")
 
         # B. Braking (Who brakes later?)
         # Look backwards from apex to find where brake went > 50%
@@ -411,7 +411,7 @@ def generate_ai_insights(multi_data, k1, k2):
             
             if abs(brake_diff_m) > 5: # If diff is > 5 meters
                 late_braker = k1 if brake_diff_m > 0 else k2 # Larger distance means started later
-                insights.append(f"🛑 **Braking into Turn {turn_count}:** {late_braker} brakes {abs(int(brake_diff_m))}m later.")
+                insights.append(f"Braking into Turn {turn_count}: {late_braker} brakes {abs(int(brake_diff_m))}m later.")
 
         # C. Throttle Application (Who gets on power earlier?)
         # Look forwards from apex
@@ -429,7 +429,7 @@ def generate_ai_insights(multi_data, k1, k2):
             
             if abs(throttle_diff_m) > 10:
                 early_power = k2 if throttle_diff_m > 0 else k1 # Smaller distance means earlier
-                insights.append(f"🚀 **Exit of Turn {turn_count}:** {early_power} reaches full throttle {abs(int(throttle_diff_m))}m earlier.")
+                insights.append(f"Exit of Turn {turn_count}: {early_power} reaches full throttle {abs(int(throttle_diff_m))}m earlier.")
 
         turn_count += 1
 
@@ -441,10 +441,10 @@ def generate_ai_insights(multi_data, k1, k2):
     
     if abs(top_s1 - top_s2) > 2:
         fastest_straight = k1 if top_s1 > top_s2 else k2
-        insights.append(f"🔥 **Top Speed:** {fastest_straight} is faster by {abs(int(top_s1 - top_s2))} km/h on the main straight.")
+        insights.append(f"Top Speed: {fastest_straight} is faster by {abs(int(top_s1 - top_s2))} km/h on the main straight.")
 
     # Limit to 12 most impactful
-    return insights[:12]
+    return insights[:11]
 
 # --- UPDATED CHAMPIONSHIP LOGIC ---
 def get_season_standings(year):
